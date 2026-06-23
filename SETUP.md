@@ -1,7 +1,7 @@
 # ⚙️ SETUP.md
 ### 3C Content Record Centre — Infrastructure & Repo Setup Guide
 
-This file exists so that infrastructure is prepared **before** any code is written, per our working process: Claude specifies what's needed, Chef provisions it, then code is built against confirmed real values — never placeholders guessed by Claude.
+This file tracks real, confirmed infrastructure values as they're locked in — never placeholders. Updated as Phase 1 deployment progresses.
 
 ---
 
@@ -11,63 +11,82 @@ These apply across every file in this repo:
 
 - **Language:** British English throughout (no exceptions)
 - **Timezone:** Europe/Lisbon (same UTC offset as London, UK)
-- **Fonts:** Open Sans or Montserrat
+- **Fonts:** Montserrat (body/UI), Open Sans (fallback)
   - Labels: minimum 11px
   - Titles: 32px, neon light purple
   - Subtitles: white
-  - Pastel orange `#ffbc66` reserved for specific fonts/symbol accents as shown in the Canva mapping
-- **Storage model:** No traditional database. Content records are individual JSON files stored in Cloudflare R2. Supabase is **not** used in this repo.
-- **Worker hosting:** The Cloudflare Worker is **not** hosted via GitHub Actions/CI. It is deployed directly from local machine to Cloudflare using the Wrangler CLI, with `wrangler.toml` as the single source of deploy configuration.
-- **Symbols:** Use the supplied Canva Create icon set (Close, Go Back, Go Next, Return to Menu, Schedule, Exit, View, Link, Index List, Download, Upload, Edit, Copy, Save, Delete) consistently across every popup, button, and index list row. Keep them small — same size/style across this repo and all sibling repos.
-- **Writing areas:** Every text input, textarea, and saved-text display container must wrap long unbroken strings (e.g. URLs) using `overflow-wrap: break-word` + `word-break: break-word`. This is a hard requirement from day one, not a later fix.
+  - Pastel orange `#ffbc66` reserved for format/symbol accents
+- **Storage model:** No traditional database. Content records are individual JSON files in Cloudflare R2. Supabase is **not** used in this repo.
+- **Worker hosting:** Not via GitHub Actions/CI. Deployed directly from local machine using the Wrangler CLI, with `wrangler.toml` as the single source of deploy configuration.
+- **Symbols:** Canva Create icon set (Close, Back, Next, Return to Menu, Schedule, Exit, View, Link, Index List, Download, Upload, Edit, Copy, Save, Delete) — recreated as inline SVG in `js/icons.js`, consistent size/style throughout.
+- **Writing areas:** Every text input, textarea, and saved-text display container wraps long unbroken strings (e.g. URLs) via `overflow-wrap: break-word` + `word-break: break-word`. Built in from the first line of CSS, not a later fix.
 
 ---
 
-## 2. Infrastructure Checklist — Cloudflare (Chef to complete)
+## 2. Confirmed Infrastructure — Cloudflare ✅
 
-Confirmed approach: same R2 bucket as `3c-boardroom-hq`, new dedicated folder, new dedicated Worker (one Worker per folder).
-
-- [ ] Confirm the **exact** existing R2 bucket name (currently holds `Caelum/` + its Worker)
-- [ ] Inside that bucket, create a new folder: `recordmanagement/`
-- [ ] Create a new, separate Cloudflare Worker dedicated to this folder
-- [ ] Bind the new Worker to the R2 bucket, scoped to `recordmanagement/`
-- [ ] Add a custom domain route: `recordmanagement.threadcommand.center` → new Worker
-- [ ] Have your Cloudflare **Account ID** ready (Cloudflare dashboard → right sidebar)
-
----
-
-## 3. What Claude needs back before drafting `wrangler.toml`
-
-Three exact values — no guessing, no placeholders:
-
-1. The exact R2 bucket name as it appears in your Cloudflare dashboard
-2. The name you give the new Worker
-3. Your Cloudflare Account ID
-
-Once these three are confirmed, `wrangler.toml` and the Worker script (`worker/index.js`) are the next deliverables.
+| Item | Value |
+|---|---|
+| R2 Bucket (shared, existing) | `3c-boardroom-hq` |
+| R2 Folder/Prefix (this project) | `records/` |
+| R2 Binding name | `RECORDS_BUCKET` |
+| Worker name | `recordmanagement` |
+| Custom Domain | `recordmanagement.threadcommand.center` — attached to the **Worker** (moved off the bucket) |
+| Account ID | `5c482ede9d3c6e016b77a9cb86ed3a29` |
 
 ---
 
-## 4. First files in this repo (this delivery)
+## 3. Confirmed Infrastructure — GitHub OAuth App ✅
 
-- `README.md`
-- `SETUP.md` *(this file)*
-- `LEGAL_DISCLAIMER.md` — Chef to add, adapted from the `3c-boardroom-hq` template
-- `LICENSE` — Chef to add via GitHub's built-in MIT license picker
+| Item | Value |
+|---|---|
+| Application name | `3C Content Record Centre` |
+| Homepage URL | `https://recordmanagement.threadcommand.center` |
+| Authorization callback URL | `https://recordmanagement.threadcommand.center/auth/callback` |
+| Client ID | `Ov23ligayj6Dj10S7kx8` |
+| Client Secret | Set directly via `wrangler secret put` — never stored in any file or chat |
+| Allowed login (single-user gate) | `Anica-blip` only — enforced in `worker/index.js` |
 
 ---
 
-## 5. Build order (once infrastructure is confirmed)
+## 4. Repo Files — Status
 
-1. `wrangler.toml` + `worker/index.js` — R2 read/write API for JSON records
-2. `index.html` — Index List page (search bar, platform banners, record rows)
-3. Card 1 — front/label popup
-4. Card 2 — content/production panel
-5. Card 3 — distribution panel (per-platform JSON)
-6. Content ID numbering logic
-7. PDF export per card
+All delivered and copied into `github.com/Anica-blip/3c-content-record-centre`:
 
-One file at a time, reviewed before the next begins — no stacking.
+- `css/style.css`
+- `js/` — `numbering.js`, `auth.js`, `api.js`, `icons.js`, `card-1.js`, `card-2.js`, `card-3.js`, `pdf-export.js`, `index-list.js`
+- `login.html`, `index.html`
+- `wrangler.toml`
+- `worker/index.js`
+- `README.md`, `SETUP.md` *(this file)*, `LEGAL_DISCLAIMER.md`, `LICENSE`
+
+---
+
+## 5. Deployment — Remaining Steps
+
+- [ ] Set the two Worker secrets:
+  ```
+  wrangler secret put GITHUB_CLIENT_SECRET
+  wrangler secret put SESSION_SECRET
+  ```
+- [ ] `wrangler deploy`
+- [ ] Enable **GitHub Pages** for this repo (Settings → Pages → deploy from `main`)
+- [ ] Confirm the exact Pages URL it gives you, and report back — `wrangler.toml`'s `ALLOWED_ORIGIN` and `FRONTEND_URL` are currently assumed as `https://anica-blip.github.io/3c-content-record-centre/...` and need correcting if that's wrong
+- [ ] Test the full flow: `login.html` → GitHub Access Connection → lands logged in on `index.html`
+- [ ] Test styling pass first (Chef), then engineering/functional pass
+
+---
+
+## 6. Phase 2 (later) — Connecting Sibling Repos
+
+Not active work yet — flagged here so it isn't lost once Phase 1 testing is done.
+
+**Content-Schedule-Planner** is the first candidate to connect:
+- Currently lives on its own sub-domain (`planner.3c-public-library.org`), which may move under `threadcommand.center` to sit alongside this repo
+- Currently uses single GitHub OAuth + Supabase — open question on whether Supabase stays or gets replaced, pending a look at the actual repo
+- Decision deferred until Claude has reviewed that repo directly
+
+Order after Planner: 3c-control-center, then full integration with Caelum AI Agent in `3c-boardroom-hq`.
 
 ---
 
