@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3C Content Record Centre</title>
+  <link rel="icon" type="image/png" href="assets/3C Thread To Success logo.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+  <div class="container">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="topbar__brand">
+        <img src="assets/3C Thread To Success logo.png" alt="3C" />
+        <h1>3C Content Record Centre</h1>
+      </div>
+      <button class="icon-btn" id="logout-btn" title="Exit">
+        <svg viewBox="0 0 24 24"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M15 16l5-5-5-5M20 11H9"/></svg>
+      </button>
+    </div>
+
+    <!-- Dashboard view -->
+    <div id="dashboard-view">
+      <div style="display:grid; grid-template-columns:320px 1fr; gap:32px;">
+        <div id="platform-rail" class="platform-rail"></div>
+        <div id="format-grid" class="format-grid"></div>
+      </div>
+    </div>
+
+    <!-- List view -->
+    <div id="list-view" class="hidden">
+      <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
+        <img id="list-banner" src="" alt="" style="height:60px; border-radius:8px; flex:1; object-fit:cover;" />
+        <img id="list-format-badge" src="" alt="" style="height:60px; border-radius:8px;" />
+        <button class="icon-btn" id="return-menu-btn" title="Return to Menu">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 4v5h5"/></svg>
+        </button>
+      </div>
+
+      <div class="search-row">
+        <div class="search-bar">
+          <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          <input type="search" id="search-input" placeholder="Search by category, persona, title, index, platform…" />
+          <svg class="clear-icon" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </div>
+        <button class="btn btn--primary" id="new-record-btn">+ New Record</button>
+      </div>
+
+      <div id="pagination-label" class="pagination"></div>
+
+      <div id="index-rows"></div>
+    </div>
+
+  </div>
+
+  <!-- Card popup overlay -->
+  <div id="card-overlay" class="card-overlay">
+    <div class="record-card" id="card-mount"></div>
+  </div>
+
+  <div class="watermark">
+    Designed and Built with ❤️ by Claude (Anthropic) × Chef Anica · 3C Thread To Success™ Cooking Lab 🧪👨‍🍳
+  </div>
+
+  <script type="module">
+    import { requireSession, logout } from './js/auth.js';
+    import { initIndexList, bindSearch, bindNewRecord, returnToMenu } from './js/index-list.js';
+
+    (async () => {
+      const user = await requireSession();
+      if (!user) return; // requireSession already redirected to login.html
+
+      await initIndexList();
+      bindSearch();
+      bindNewRecord();
+
+      document.getElementById('return-menu-btn').addEventListener('click', returnToMenu);
+      document.getElementById('logout-btn').addEventListener('click', logout);
+
+      document.getElementById('card-overlay').addEventListener('click', (e) => {
+        if (e.target.id === 'card-overlay') {
+          // clicking the dark backdrop does not auto-close — cards must be
+          // closed deliberately via the Close/Save icon so edits aren't lost
+        }
+      });
+    })();
+
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast toast--${type} show`;
+      setTimeout(() => t.classList.remove('show'), 3000);
+    }
+    window.showToast = showToast;
+  </script>
+
+</body>
+</html>
