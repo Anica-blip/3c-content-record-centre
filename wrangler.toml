@@ -1,0 +1,27 @@
+# wrangler.toml — 3C Content Record Centre Worker
+# 3C Thread To Success™
+
+name = "recordmanagement"
+main = "worker/index.js"
+compatibility_date = "2024-09-23"
+account_id = "5c482ede9d3c6e016b77a9cb86ed3a29"
+
+# R2 binding — the Worker's code refers to the bucket as env.RECORDS_BUCKET
+[[r2_buckets]]
+binding = "RECORDS_BUCKET"
+bucket_name = "3c-boardroom-hq"
+
+# Non-secret config — safe to commit
+[vars]
+RECORDS_PREFIX = "records/"
+GITHUB_CLIENT_ID = "Ov23ligayj6Dj10S7kx8"
+ALLOWED_GITHUB_LOGIN = "Anica-blip"
+
+# ⚠️ Chef — confirm this is the exact GitHub Pages URL once Pages is
+# enabled for this repo. Assumed pattern based on your other repos.
+ALLOWED_ORIGIN = "https://anica-blip.github.io"
+FRONTEND_URL = "https://anica-blip.github.io/3c-content-record-centre/index.html"
+
+# Secrets — NEVER go in this file. Set them with:
+#   wrangler secret put GITHUB_CLIENT_SECRET
+#   wrangler secret put SESSION_SECRET
