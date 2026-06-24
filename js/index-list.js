@@ -1,16 +1,16 @@
 // index-list.js — Dashboard + Index List + Card flow orchestration
 // 3C Content Record Centre · 3C Thread To Success™
 
-import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=8';
-import { icon } from './icons.js?v=8';
+import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=9';
+import { icon } from './icons.js?v=9';
 import {
   buildCanonicalId, nextSequence, formatIndexTailForPlatform,
   PLATFORM_ABBR, ALL_PLATFORMS,
-} from './numbering.js?v=8';
-import { renderCard1, bindCard1Events } from './card-1.js?v=8';
-import { renderCard2, bindCard2Events } from './card-2.js?v=8';
-import { renderCard3, bindCard3Events } from './card-3.js?v=8';
-import { exportRecordPDF } from './pdf-export.js?v=8';
+} from './numbering.js?v=9';
+import { renderCard1, bindCard1Events } from './card-1.js?v=9';
+import { renderCard2, bindCard2Events } from './card-2.js?v=9';
+import { renderCard3, bindCard3Events } from './card-3.js?v=9';
+import { exportRecordPDF } from './pdf-export.js?v=9';
 
 const PLATFORMS = ALL_PLATFORMS;
 const FORMATS   = ['short video', 'long video', 'post card'];
