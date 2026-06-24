@@ -1,16 +1,20 @@
 // numbering.js — Content ID numbering system
 // 3C Content Record Centre · 3C Thread To Success™
 //
-// ID sequence order: platform (1st) + format (2nd) + persona (3rd)
-// + month (4th) + year (5th) + generated number (6th, starts at 001
-// per platform+format combination)
+// One shared record can be filed under several platforms at once.
+// Each platform keeps its OWN independent sequence counter — TG might
+// be at #150 while TK is only at #55 — so adding a platform to an
+// existing record never reuses another platform's number, and never
+// touches another platform's already-saved work.
 
 export const PLATFORM_ABBR = {
-  YouTube:   'YT',
   Telegram:  'TG',
+  YouTube:   'YT',
   TikTok:    'TK',
   Pinterest: 'PI',
 };
+
+export const ALL_PLATFORMS = Object.keys(PLATFORM_ABBR);
 
 export const FORMAT_ABBR = {
   'short video': 'SV',
@@ -33,8 +37,9 @@ export const PERSONA_ABBR = {
 };
 
 /**
- * Builds the canonical machine ID (stored, never shown raw to the user).
- * Example: YT-SV-FL-05-2026-0001
+ * Builds the storage-key ID for a record — based on whichever platform
+ * is the "home" platform (the one it was first created under). This is
+ * the filename in R2, never reassigned once a record exists.
  */
 export function buildCanonicalId({ platform, format, persona, month, year, sequence }) {
   const p  = PLATFORM_ABBR[platform]   || platform;
@@ -47,58 +52,43 @@ export function buildCanonicalId({ platform, format, persona, month, year, seque
 }
 
 /**
- * Parses a canonical ID back into its parts.
+ * Card header display, for whichever platform is currently the active
+ * tab — uses THAT platform's own sequence number, not the storage-key id.
+ * Matches the Canva mockup: YT-SV-FL-06.26-0055
  */
-export function parseCanonicalId(id) {
-  const [platform, format, persona, month, year, sequence] = id.split('-');
-  return { platform, format, persona, month, year, sequence };
+export function formatCardHeaderForPlatform(record, platform) {
+  const abbr = PLATFORM_ABBR[platform] || platform;
+  const f    = FORMAT_ABBR[record.format] || record.format;
+  const pr   = PERSONA_ABBR[record.persona] || record.persona;
+  const mm   = (record.date || '').slice(5, 7);
+  const yy   = (record.date || '').slice(2, 4);
+  const seq  = record.sequences?.[platform];
+  const seqStr = seq != null ? String(seq).padStart(3, '0') : '---';
+  return `${abbr}-${f}-${pr}-${mm}.${yy}-${seqStr}`;
 }
 
 /**
- * Card header display style — matches the Canva mockup exactly:
- * YT-SV-FL-05.26-001  (2-digit year, hyphen-dot mix, 3-digit sequence)
+ * Index list display tail for a specific platform — matches the Canva
+ * mockup: 06.2026.0055
  */
-export function formatCardHeader(id) {
-  const { platform, format, persona, month, year, sequence } = parseCanonicalId(id);
-  const yy = year.slice(-2);
-  const seq3 = String(parseInt(sequence, 10)).padStart(3, '0');
-  return `${platform}-${format}-${persona}-${month}.${yy}-${seq3}`;
+export function formatIndexTailForPlatform(record, platform) {
+  const mm   = (record.date || '').slice(5, 7);
+  const yyyy = (record.date || '').slice(0, 4);
+  const seq  = record.sequences?.[platform];
+  const seqStr = seq != null ? String(seq).padStart(4, '0') : '----';
+  return `${mm}.${yyyy}.${seqStr}`;
 }
 
 /**
- * Index list display style — matches the Canva mockup exactly:
- * 05.2026.0001  (4-digit year, dot separator, 4-digit sequence)
- * Used as the trailing fragment after the platform list in an index row.
- */
-export function formatIndexTail(id) {
-  const { month, year, sequence } = parseCanonicalId(id);
-  return `${month}.${year}.${sequence}`;
-}
-
-/**
- * Given existing records (already loaded), finds the next free sequence
- * number for a specific platform + format combination. Starts at 1.
+ * Finds the next free sequence number for a specific platform + format
+ * combination, looking across every existing record's own per-platform
+ * sequence map. Starts at 1.
  */
 export function nextSequence(existingRecords, platform, format) {
-  const matches = existingRecords.filter(r =>
-    r.platforms?.[0] === platform && r.format === format
-  );
-  if (!matches.length) return 1;
-  const max = matches.reduce((acc, r) => {
-    const { sequence } = parseCanonicalId(r.id);
-    return Math.max(acc, parseInt(sequence, 10));
+  const max = existingRecords.reduce((acc, r) => {
+    if (r.format !== format) return acc;
+    const seq = r.sequences?.[platform];
+    return seq != null ? Math.max(acc, seq) : acc;
   }, 0);
   return max + 1;
-}
-
-/**
- * Builds the platform abbreviation list for an index row, e.g. "YT/TG/PI/TK",
- * with the primary (filed-under) platform distinguished from the rest.
- */
-export function formatPlatformList(platforms, primaryPlatform) {
-  return platforms.map(p => {
-    const abbr = PLATFORM_ABBR[p] || p;
-    const isPrimary = p === primaryPlatform;
-    return { abbr, isPrimary };
-  });
 }
