@@ -13,10 +13,10 @@
 // "remove from this platform only" vs "delete the whole record" is an
 // explicit choice, not an accidental tap.
 
-import { icon } from './icons.js?v=8';
+import { icon } from './icons.js?v=9';
 import {
   ALL_PLATFORMS, PLATFORM_ABBR, formatCardHeaderForPlatform,
-} from './numbering.js?v=8';
+} from './numbering.js?v=9';
 
 const FIELD_ORDER = [
   { key: 'category', label: 'Category' },
