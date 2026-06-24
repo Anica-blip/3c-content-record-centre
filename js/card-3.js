@@ -6,8 +6,8 @@
 // A tab strip lets Chef switch between platforms when content is filed
 // across more than one.
 
-import { icon } from './icons.js';
-import { formatCardHeader } from './numbering.js';
+import { icon } from './icons.js?v=3';
+import { formatCardHeader } from './numbering.js?v=3';
 
 // Approximate public character guidance per platform — a helpful
 // reference while writing, not an enforced hard rule.
