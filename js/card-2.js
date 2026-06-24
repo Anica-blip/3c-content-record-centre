@@ -5,8 +5,8 @@
 // references, Suno music notes, etc. Free-writing area — content here
 // can run longer than the card, so the body scrolls.
 
-import { icon } from './icons.js';
-import { formatCardHeader } from './numbering.js';
+import { icon } from './icons.js?v=3';
+import { formatCardHeader } from './numbering.js?v=3';
 
 export function renderCard2(draft) {
   const headerId = draft.id ? formatCardHeader(draft.id) : 'NEW RECORD';
