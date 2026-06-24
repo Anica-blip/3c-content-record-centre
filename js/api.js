@@ -1,14 +1,15 @@
 // api.js — Worker API layer
 // 3C Content Record Centre · 3C Thread To Success™
 //
-// Single source of truth for the public API base URL. No keys, no
-// secrets — everything sensitive lives server-side in the Worker.
+// Single source of truth for the public API base URL. Every request
+// attaches the session token (from localStorage) as a Bearer header —
+// no cookies, since GitHub Pages and this Worker are different sites
+// and cross-site cookies get silently blocked by modern browsers.
 //
-// API CONTRACT (for the Worker build, once Cloudflare side is ready):
+// API CONTRACT (for the Worker, already built):
 //   GET    /auth/me              -> 200 { user }  | 401
 //   GET    /auth/login           -> redirects to GitHub OAuth
-//   GET    /auth/callback        -> Worker-only, handles OAuth exchange
-//   POST   /auth/logout          -> clears session cookie
+//   GET    /auth/callback        -> Worker-only, redirects back with #token=
 //   GET    /api/records          -> list, supports ?platform=&format=&persona=&q=
 //   GET    /api/records/:id      -> single record
 //   POST   /api/records          -> create (body: record JSON, no id) -> returns record with generated id
@@ -17,10 +18,20 @@
 
 export const API_BASE = 'https://recordmanagement.threadcommand.center';
 
+const TOKEN_KEY = '3c_session_token';
+
+function authHeader() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader(),
+      ...(options.headers || {}),
+    },
     ...options,
   });
 
