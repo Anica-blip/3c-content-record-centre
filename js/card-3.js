@@ -8,9 +8,9 @@
 // stored for any other platform. A tab strip switches between them,
 // and the header number updates to match whichever tab is selected.
 
-import { icon } from './icons.js?v=8';
-import { formatCardHeaderForPlatform } from './numbering.js?v=8';
-import { API_BASE } from './api.js?v=8';
+import { icon } from './icons.js?v=9';
+import { formatCardHeaderForPlatform } from './numbering.js?v=9';
+import { API_BASE } from './api.js?v=9';
 
 // Approximate public character guidance per platform — a helpful
 // reference while writing, not an enforced hard rule.
