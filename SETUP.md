@@ -67,25 +67,60 @@ Whatever's written in this file is what Cloudflare ends up with — bindings, va
 2. Browser favicon cache specifically (Firefox keeps this separate — a normal cache clear doesn't always touch it)
 3. GitHub Pages' own CDN edge cache (separate from both of the above)
 
-**The actual fix for this, built into the code:** every CSS link, JS import, and image reference across the front-end carries a version query string (`?v=3` currently). Whenever a real change is made to any file, **bump the number across every reference at once** — that forces a fresh fetch regardless of what any cache layer thinks it already has. This is now standard practice for this repo, not a one-off patch.
+**The actual fix for this, built into the code:** every CSS link, JS import, and image reference across the front-end carries a version query string (e.g. `?v=8`). Whenever a real change is made to any file, **bump the number across every reference at once** — that forces a fresh fetch regardless of what any cache layer thinks it already has. This is now standard practice for this repo, not a one-off patch.
 
 ---
 
-## 6. Status — Phase 1
+## 6. Data Model — Shared Record, Per-Platform Numbering
 
-**Engineering: complete.** Login, the three-card system, search/filter, R2 record storage, and PDF export are all functioning end to end.
+One JSON record can be filed under several platforms at once, without ever duplicating the file or overriding another platform's work:
 
-**Now in progress:** Chef's full visual/styling review, page by page, before final sign-off on Phase 1.
+```
+{
+  id: "TG-SV-FL-06-2026-0150",        // storage key — based on the "home" platform
+  category, title, persona, date, time, format, playlist, index,   // shared across all platforms
+  platforms: ["Telegram", "TikTok"],
+  sequences: { Telegram: 150, TikTok: 55, YouTube: null, Pinterest: null },
+  content: { notes, references },      // shared (Card 2) — same content regardless of platform
+  distribution: {                      // per-platform (Card 3)
+    Telegram: { title, description, hashtags, tags, cta, keywords, platformNotes },
+    TikTok:   { title, description, hashtags, tags, cta, keywords, platformNotes }
+  },
+  created, updated
+}
+```
+
+**Rules that must never break:**
+- Adding a platform never reassigns or touches another platform's `sequences` value.
+- Nothing persists to storage until Card 1's Close or Card 3's Save — Next/Back between cards is in-memory only.
+- Removing a platform (via the index list's delete flow) only ever clears that platform's own `sequences` and `distribution` entries — every other platform's data is untouched. "Delete entire record" is always a deliberate second choice, never the default.
+- `platformNotes` (bottom of each Card 3 tab) is the general-purpose escape hatch for any platform-specific tweak that isn't one of the standard distribution fields — Card 1 and Card 2 stay shared/singular, this is where a platform-specific deviation gets noted instead.
 
 ---
 
-## 7. Phase 2 (later) — Connecting Sibling Repos
+## 7. Status — Phase 1
 
-Not active work yet.
+**Engineering: complete**, including the shared-record multi-platform rebuild above. Login, the three-card system, search/filter, R2 record storage, PDF export, and independent per-platform numbering are all functioning end to end.
 
-**Content-Schedule-Planner** is the first candidate:
-- Currently on its own sub-domain (`planner.3c-public-library.org`) — may move under `threadcommand.center`
-- Currently uses single GitHub OAuth + Supabase — whether Supabase stays is an open question pending a direct look at that repo
+**Now in progress:** Chef loading in existing real cards to stress-test the shared-platform and delete behaviour live, plus a final watermark/styling pass.
+
+---
+
+## 8. Phase 2 — Content Schedule Planner Integration
+
+Spec captured now, ahead of actually starting the build, so nothing gets lost between now and then.
+
+**Planner stays an independent repo** — its own domain, its own Supabase project, its own OAuth. Not merging into this repo. The connection is a bridge, not a migration.
+
+**Bridge mechanism (still open, not yet decided):** a Worker receives the "scheduled" card from this repo. Simplest version: this same Worker (`3ccontentrecordcentre`) sends the card directly to the Planner's own backend when Schedule is pressed. Final call on exact mechanism (push from here vs. Planner polling vs. something else) once both repos are actually in front of us together.
+
+**Calendar event card spec, on the Planner side:**
+- Button title = `category`
+- Button colour = format colour (already matching exactly: SV `#5e17eb`, LV `#ffbc66`, PC `#03e493`)
+- Card shows: format, day, date + time, platform, and a way through to view Card 1
+- Same Canva Create symbol set carries over, for visual consistency between the two repos
+
+**Manual entry stays — this is important, not a regression.** The Planner already supports adding content manually for things that live outside the 3C ecosystem entirely, and that freedom must remain. The only requirement: manually-added content should be styled to match this repo's platform/format conventions (e.g. filed under a platform like TG, coloured per format) so everything sits visually consistent on the calendar — ecosystem-sourced and manually-added cards should look like they belong to the same system, even though only one of them is.
 
 Order after Planner: `3c-control-center`, then full integration with Caelum AI Agent in `3c-boardroom-hq`.
 
