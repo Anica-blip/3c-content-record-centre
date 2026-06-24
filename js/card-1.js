@@ -6,8 +6,8 @@
 // This card also becomes the condensed label bar sent to the
 // Content Schedule Planner (category + day + timestamp + platform).
 
-import { icon } from './icons.js';
-import { formatCardHeader } from './numbering.js';
+import { icon } from './icons.js?v=3';
+import { formatCardHeader } from './numbering.js?v=3';
 
 const FIELD_ORDER = [
   { key: 'category', label: 'Category' },
