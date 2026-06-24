@@ -2,14 +2,15 @@
 // 3C Content Record Centre · 3C Thread To Success™
 //
 // Delivery details. Not all platforms are equal, so each platform gets
-// its own set of fields (title, description, keywords, hashtags, cta).
-// A tab strip lets Chef switch between platforms when content is filed
-// across more than one. Once a record has been saved at least once,
-// this card also shows its direct API link for quick reference.
+// its own set of fields (title, description, keywords, hashtags, cta),
+// plus a free "Platform Notes" field for anything else that needs to
+// differ for that platform specifically — without ever touching what's
+// stored for any other platform. A tab strip switches between them,
+// and the header number updates to match whichever tab is selected.
 
-import { icon } from './icons.js?v=5';
-import { formatCardHeader } from './numbering.js?v=5';
-import { API_BASE } from './api.js?v=5';
+import { icon } from './icons.js?v=8';
+import { formatCardHeaderForPlatform } from './numbering.js?v=8';
+import { API_BASE } from './api.js?v=8';
 
 // Approximate public character guidance per platform — a helpful
 // reference while writing, not an enforced hard rule.
@@ -21,18 +22,18 @@ const CHAR_LIMITS = {
 };
 
 const DIST_FIELDS = [
-  { key: 'title',       label: 'Title',       type: 'input' },
-  { key: 'description', label: 'Description', type: 'textarea', rows: 6 },
-  { key: 'hashtags',    label: 'Hashtags',     type: 'textarea', rows: 2 },
-  { key: 'tags',        label: 'Tags',         type: 'textarea', rows: 2 },
-  { key: 'cta',         label: 'CTA',          type: 'input' },
-  { key: 'keywords',    label: 'Keywords',     type: 'input' },
+  { key: 'title',         label: 'Title',         type: 'input' },
+  { key: 'description',   label: 'Description',   type: 'textarea', rows: 6 },
+  { key: 'hashtags',      label: 'Hashtags',       type: 'textarea', rows: 2 },
+  { key: 'tags',          label: 'Tags',           type: 'textarea', rows: 2 },
+  { key: 'cta',           label: 'CTA',            type: 'input' },
+  { key: 'keywords',      label: 'Keywords',       type: 'input' },
+  { key: 'platformNotes', label: 'Platform Notes — anything else that differs for this platform', type: 'textarea', rows: 3 },
 ];
 
 let activePlatform = null;
 
 export function renderCard3(draft) {
-  const headerId = draft.id ? formatCardHeader(draft.id) : 'NEW RECORD';
   draft.distribution = draft.distribution || {};
   draft.platforms.forEach(p => {
     draft.distribution[p] = draft.distribution[p] || {};
@@ -41,6 +42,8 @@ export function renderCard3(draft) {
   if (!activePlatform || !draft.platforms.includes(activePlatform)) {
     activePlatform = draft.platforms[0];
   }
+
+  const headerId = draft.id ? formatCardHeaderForPlatform(draft, activePlatform) : 'NEW RECORD';
 
   const tabs = draft.platforms.map(p => `
     <button class="btn ${p === activePlatform ? 'btn--primary' : 'btn--ghost'}"
