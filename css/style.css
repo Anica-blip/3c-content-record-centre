@@ -394,15 +394,14 @@ textarea { resize: vertical; min-height: 90px; }
   flex-shrink: 0;
 }
 
-/* ── Watermark — corner variant for list view ────────────── */
-.watermark--corner {
-  text-align: right;
-  font-size: 0.62rem;
-  padding: 4px 0 0;
+/* ── Watermark — full-width single line above the list view ── */
+.watermark--top {
+  text-align: center;
+  font-size: 0.72rem;
+  padding: 0 16px 16px;
   margin: 0;
-  max-width: 220px;
-  line-height: 1.3;
-  flex-shrink: 0;
+  white-space: nowrap;
+  overflow-x: auto;
 }
 
 .pagination {
@@ -583,53 +582,33 @@ textarea { resize: vertical; min-height: 90px; }
 }
 .char-counter.over-limit { color: var(--danger); font-weight: 700; }
 
-/* ── Platform chips (Card 1 — multi-platform editor) ────────── */
-.platform-chips {
+/* ── Platform letters (Card 1 — fixed TG/YT/TK/PI row) ──────── */
+.platform-letter-row {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
   flex: 1;
 }
 
-.platform-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.platform-letter {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.platform-letter:hover { border-color: var(--orange); color: var(--text-white); }
+
+.platform-letter.active {
   background: var(--orange);
-  border: 1px solid var(--orange-dim);
+  border-color: var(--orange-dim);
   color: #1a1a1a;
-  border-radius: 20px;
-  padding: 4px 6px 4px 12px;
-  font-size: 0.8rem;
-  font-weight: 700;
 }
-
-.platform-chip button {
-  background: none;
-  border: none;
-  color: #1a1a1a;
-  opacity: 0.65;
-  cursor: pointer;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.platform-chip button:hover { opacity: 1; }
-.platform-chip button svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
-
-.platform-chip-add {
-  background: transparent;
-  border: 1px dashed var(--border-strong);
-  color: var(--text-muted);
-  border-radius: 20px;
-  padding: 4px 12px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-.platform-chip-add:hover { border-color: var(--violet); color: #fff; }
 
 /* ── Record link row (Card 3 — copyable API URL) ─────────────── */
 .record-link-row {
