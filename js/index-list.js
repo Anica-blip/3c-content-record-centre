@@ -1,28 +1,29 @@
 // index-list.js — Dashboard + Index List + Card flow orchestration
 // 3C Content Record Centre · 3C Thread To Success™
 
-import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=5';
-import { icon } from './icons.js?v=5';
+import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=8';
+import { icon } from './icons.js?v=8';
 import {
-  buildCanonicalId, nextSequence, formatIndexTail,
-  PLATFORM_ABBR, FORMAT_ABBR,
-} from './numbering.js?v=5';
-import { renderCard1, bindCard1Events } from './card-1.js?v=5';
-import { renderCard2, bindCard2Events } from './card-2.js?v=5';
-import { renderCard3, bindCard3Events } from './card-3.js?v=5';
-import { exportRecordPDF } from './pdf-export.js?v=5';
+  buildCanonicalId, nextSequence, formatIndexTailForPlatform,
+  PLATFORM_ABBR, ALL_PLATFORMS,
+} from './numbering.js?v=8';
+import { renderCard1, bindCard1Events } from './card-1.js?v=8';
+import { renderCard2, bindCard2Events } from './card-2.js?v=8';
+import { renderCard3, bindCard3Events } from './card-3.js?v=8';
+import { exportRecordPDF } from './pdf-export.js?v=8';
 
-const PLATFORMS = ['Telegram', 'YouTube', 'TikTok', 'Pinterest'];
+const PLATFORMS = ALL_PLATFORMS;
 const FORMATS   = ['short video', 'long video', 'post card'];
 const PAGE_SIZE = 10;
 
-let allRecords      = [];
-let activePlatform   = PLATFORMS[0];
-let activeFormat     = null;
-let searchQuery      = '';
-let currentPage      = 1;
-let currentDraft     = null;
-let currentStep      = 1;
+let allRecords        = [];
+let activePlatform     = PLATFORMS[0];
+let activeFormat       = null;
+let searchQuery        = '';
+let currentPage         = 1;
+let currentDraft        = null;
+let currentStep         = 1;
+let viewingPlatform     = null; // which platform's number/tab a card was opened from
 
 const PLATFORM_BANNER = {
   Telegram:  'assets/banners/TG-banner.png',
@@ -47,7 +48,6 @@ function sortNewestFirst() {
   allRecords.sort((a, b) => (b.created || '').localeCompare(a.created || ''));
 }
 
-// ── Topbar visibility — dashboard only, hidden on list view ─
 function setTopbarVisible(visible) {
   document.getElementById('topbar')?.classList.toggle('hidden', !visible);
 }
@@ -95,11 +95,6 @@ function openListView(platform, format) {
   renderListView();
 }
 
-/**
- * Accepts either a plain search term or a pasted record URL
- * (e.g. https://recordmanagement.threadcommand.center/api/records/YT-SV-FL-06-2026-0001)
- * and reduces it to the bit worth matching against — the record ID itself.
- */
 function normaliseSearchQuery(raw) {
   const trimmed = raw.trim();
   const urlMatch = trimmed.match(/\/api\/records\/([^/?#]+)/i);
@@ -147,9 +142,9 @@ function renderListView() {
   rowsEl.innerHTML = pageResults.map(r => renderRow(r)).join('');
 
   rowsEl.querySelectorAll('[data-view]').forEach(btn =>
-    btn.addEventListener('click', () => openCardFlow(findRecord(btn.dataset.view))));
+    btn.addEventListener('click', () => openCardFlow(findRecord(btn.dataset.view), activePlatform)));
   rowsEl.querySelectorAll('[data-edit]').forEach(btn =>
-    btn.addEventListener('click', () => openCardFlow(findRecord(btn.dataset.edit))));
+    btn.addEventListener('click', () => openCardFlow(findRecord(btn.dataset.edit), activePlatform)));
   rowsEl.querySelectorAll('[data-copy]').forEach(btn =>
     btn.addEventListener('click', () => duplicateRecord(findRecord(btn.dataset.copy))));
   rowsEl.querySelectorAll('[data-download]').forEach(btn =>
@@ -165,10 +160,11 @@ function findRecord(id) {
 }
 
 function renderRow(r) {
-  const tail = formatIndexTail(r.id);
-  const platformsHtml = r.platforms.map(p => {
-    const abbr = PLATFORM_ABBR[p] || p;
-    return `<span class="${p === activePlatform ? '' : 'inactive'}">${abbr}</span>`;
+  const tail = formatIndexTailForPlatform(r, activePlatform);
+
+  const lettersHtml = ALL_PLATFORMS.map(p => {
+    const isActive = r.platforms.includes(p);
+    return `<span class="${isActive ? 'active' : 'inactive'}">${PLATFORM_ABBR[p]}</span>`;
   }).join('/');
 
   return `
@@ -176,11 +172,11 @@ function renderRow(r) {
       <button class="icon-btn" data-view="${r.id}" title="View">${icon('view')}</button>
       <div class="index-row__title">
         ${esc(r.category)} - ${esc(r.persona)} - ${esc(r.title)} - ${esc(r.index)} -
-        <span class="index-row__platforms">${platformsHtml}</span> - ${tail}
+        <span class="index-row__platforms">${lettersHtml}</span> - ${tail}
       </div>
       <div class="index-row__actions">
         <button class="icon-btn" data-edit="${r.id}" title="Edit">${icon('edit')}</button>
-        <button class="icon-btn" data-copy="${r.id}" title="Duplicate">${icon('copy')}</button>
+        <button class="icon-btn" data-copy="${r.id}" title="Duplicate as new record">${icon('copy')}</button>
         <button class="icon-btn" data-schedule="${r.id}" title="Send to Content Schedule Planner">${icon('schedule')}</button>
         <button class="icon-btn" data-download="${r.id}" title="Download PDF">${icon('download')}</button>
         <button class="icon-btn icon-btn--danger" data-delete="${r.id}" title="Delete">${icon('delete')}</button>
@@ -230,31 +226,66 @@ export function bindNewRecord() {
       time: '',
       format: activeFormat,
       platforms: [activePlatform],
+      sequences: {},
       playlist: '',
       index: '',
       content: { notes: '', references: '' },
       distribution: {},
     };
-    openCardFlow(blank);
+    openCardFlow(blank, activePlatform);
   });
 }
 
 function duplicateRecord(record) {
   const copy = JSON.parse(JSON.stringify(record));
   copy.id = null;
-  openCardFlow(copy);
+  copy.platforms = [activePlatform];   // a duplicate starts as its own clean record
+  copy.sequences = {};                  // gets its own fresh number on save
+  copy.created = null;
+  openCardFlow(copy, activePlatform);
 }
 
+/**
+ * Delete is platform-aware. If a record is filed under more than one
+ * platform, removing it from the current platform's view should not,
+ * by default, destroy the other platforms' work — that's a deliberate
+ * second choice ("delete all"), never the default.
+ */
 async function handleDelete(id) {
-  if (!confirm('Delete this record permanently?')) return;
-  await deleteRecord(id);
-  allRecords = allRecords.filter(r => r.id !== id);
-  renderListView();
+  const record = findRecord(id);
+  if (!record) return;
+
+  if (record.platforms.length <= 1) {
+    if (!confirm('Delete this record permanently?')) return;
+    await deleteRecord(id);
+    allRecords = allRecords.filter(r => r.id !== id);
+    renderListView();
+    return;
+  }
+
+  const removeOnly = confirm(
+    `Remove ${activePlatform} from this record? The other platform(s) — ${record.platforms.filter(p => p !== activePlatform).join(', ')} — will be kept.\n\nPress Cancel to choose deleting the entire record instead.`
+  );
+
+  if (removeOnly) {
+    record.platforms = record.platforms.filter(p => p !== activePlatform);
+    delete record.sequences[activePlatform];
+    delete record.distribution?.[activePlatform];
+    const saved = await updateRecord(record.id, record);
+    const idx = allRecords.findIndex(r => r.id === saved.id);
+    if (idx >= 0) allRecords[idx] = saved;
+    renderListView();
+    return;
+  }
+
+  if (confirm('Delete the ENTIRE record — every platform it is filed under — permanently?')) {
+    await deleteRecord(id);
+    allRecords = allRecords.filter(r => r.id !== id);
+    renderListView();
+  }
 }
 
 function handleSchedule(record) {
-  // Placeholder until the Content Schedule Planner integration (Phase 2)
-  // is wired up — forwarding Card 1's label data there is the intent.
   window.showToast?.(
     `Scheduling for "${record.title}" will connect once the Content Schedule Planner integration is ready.`,
     'error'
@@ -262,8 +293,9 @@ function handleSchedule(record) {
 }
 
 // ── Card flow (overlay) ───────────────────────────────────
-function openCardFlow(record) {
+function openCardFlow(record, openedFromPlatform) {
   currentDraft = record;
+  viewingPlatform = openedFromPlatform || record.platforms[0];
   currentStep = 1;
   document.getElementById('card-overlay').classList.add('active');
   renderCurrentStep();
@@ -278,17 +310,22 @@ function renderCurrentStep() {
   const mount = document.getElementById('card-mount');
 
   if (currentStep === 1) {
-    mount.innerHTML = renderCard1(currentDraft);
+    mount.innerHTML = renderCard1(currentDraft, viewingPlatform);
     bindCard1Events(mount, currentDraft, {
-      onNext: async (draft) => { await persistDraft(draft); currentStep = 2; renderCurrentStep(); },
+      onNext: (draft) => { currentStep = 2; renderCurrentStep(); },
       onClose: async (draft) => { await persistDraft(draft); finishCardFlow(); },
       onChange: () => renderCurrentStep(),
+      onAddPlatform: (platform) => {
+        if (!currentDraft.platforms.includes(platform)) {
+          currentDraft.platforms = [...currentDraft.platforms, platform];
+        }
+      },
     });
   } else if (currentStep === 2) {
-    mount.innerHTML = renderCard2(currentDraft);
+    mount.innerHTML = renderCard2(currentDraft, viewingPlatform);
     bindCard2Events(mount, currentDraft, {
-      onNext: async (draft) => { await persistDraft(draft); currentStep = 3; renderCurrentStep(); },
-      onBack: async (draft) => { await persistDraft(draft); currentStep = 1; renderCurrentStep(); },
+      onNext: (draft) => { currentStep = 3; renderCurrentStep(); },
+      onBack: (draft) => { currentStep = 1; renderCurrentStep(); },
     });
   } else {
     renderStep3();
@@ -299,28 +336,41 @@ function renderStep3() {
   const mount = document.getElementById('card-mount');
   mount.innerHTML = renderCard3(currentDraft);
   bindCard3Events(mount, currentDraft, {
-    onBack: async (draft) => { await persistDraft(draft); currentStep = 2; renderCurrentStep(); },
+    onBack: (draft) => { currentStep = 2; renderCurrentStep(); },
     onSave: async (draft) => { await persistDraft(draft); finishCardFlow(); },
     rerender: () => renderStep3(),
   });
 }
 
+/**
+ * The only place a record actually gets written to storage — Card 1's
+ * Close, or Card 3's Save. Assigns a fresh sequence number to any
+ * platform that doesn't have one yet, without ever recalculating or
+ * touching a platform that already has one.
+ */
 async function persistDraft(draft) {
+  draft.sequences = draft.sequences || {};
+  draft.platforms.forEach(p => {
+    if (draft.sequences[p] == null) {
+      draft.sequences[p] = nextSequence(allRecords, p, draft.format);
+    }
+  });
+
   if (!draft.id) {
-    const sequence = nextSequence(allRecords, draft.platforms[0], draft.format);
+    const homePlatform = draft.platforms[0];
     draft.id = buildCanonicalId({
-      platform: draft.platforms[0],
+      platform: homePlatform,
       format: draft.format,
       persona: draft.persona,
       month: draft.date.slice(5, 7),
       year: draft.date.slice(0, 4),
-      sequence,
+      sequence: draft.sequences[homePlatform],
     });
     draft.created = new Date().toISOString();
   }
   draft.updated = new Date().toISOString();
 
-  const saved = draft.created && allRecords.some(r => r.id === draft.id)
+  const saved = allRecords.some(r => r.id === draft.id)
     ? await updateRecord(draft.id, draft)
     : await createRecord(draft);
 
