@@ -3,18 +3,20 @@
 //
 // Standard fields always present, whether filled in or not:
 // Category, Title, Persona, Date, Format, Platform, Playlist, Index.
-// This card also becomes the condensed label bar sent to the
-// Content Schedule Planner (category + day + timestamp + platform).
 //
-// Platform is multi-select, additive only: chips show every platform
-// this record is currently filed under; removing one or adding another
-// only ever touches the platforms list itself — Card 3's distribution
-// data for platforms already on the record is never overwritten.
+// Platform row is fixed: all four letters always shown. Active
+// platforms (already filed under) are orange; inactive ones are grey.
+// Clicking an inactive letter adds that platform to the record with
+// its own freshly assigned sequence number — never touching another
+// platform's number or data. Clicking an already-active letter does
+// not remove it; removal lives in the index list's delete flow, where
+// "remove from this platform only" vs "delete the whole record" is an
+// explicit choice, not an accidental tap.
 
-import { icon } from './icons.js?v=5';
-import { formatCardHeader } from './numbering.js?v=5';
-
-const ALL_PLATFORMS = ['Telegram', 'YouTube', 'TikTok', 'Pinterest'];
+import { icon } from './icons.js?v=8';
+import {
+  ALL_PLATFORMS, PLATFORM_ABBR, formatCardHeaderForPlatform,
+} from './numbering.js?v=8';
 
 const FIELD_ORDER = [
   { key: 'category', label: 'Category' },
@@ -27,18 +29,20 @@ const FIELD_ORDER = [
 ];
 
 /**
- * Renders Card 1's full markup (header, body, footer) into a string.
- * `draft` is the in-memory working copy of the record being viewed/edited.
+ * Renders Card 1's full markup. `viewingPlatform` decides which
+ * platform's sequence number shows in the header — the tab the record
+ * was opened from.
  */
-export function renderCard1(draft) {
-  const headerId = draft.id ? formatCardHeader(draft.id) : 'NEW RECORD';
-  const year = draft.date ? draft.date.slice(0, 4) : new Date().getFullYear();
+export function renderCard1(draft, viewingPlatform) {
   draft.platforms = draft.platforms || [];
+  draft.sequences = draft.sequences || {};
+  const headerId = draft.id ? formatCardHeaderForPlatform(draft, viewingPlatform) : 'NEW RECORD';
+  const year = draft.date ? draft.date.slice(0, 4) : new Date().getFullYear();
 
   const platformFieldHtml = `
     <div class="record-card__field">
       <div class="record-card__field-label">Platform</div>
-      ${renderPlatformChips(draft.platforms)}
+      ${renderPlatformRow(draft.platforms)}
     </div>`;
 
   const fieldHtml = (f) => {
@@ -61,8 +65,7 @@ export function renderCard1(draft) {
       </div>`;
   };
 
-  // Platform sits right after Title, matching the original field order:
-  // Category, Title, Persona, Date+Time, Format, Platform, Playlist, Index.
+  // Platform sits right after Format, matching the original field order.
   const fields = FIELD_ORDER
     .map(f => f.key === 'format' ? fieldHtml(f) + platformFieldHtml : fieldHtml(f))
     .join('');
@@ -81,53 +84,37 @@ export function renderCard1(draft) {
     </div>`;
 }
 
-function renderPlatformChips(platforms) {
-  const chips = platforms.map(p => `
-    <span class="platform-chip" data-chip="${p}">
-      ${esc(p)}
-      <button type="button" data-remove-platform="${p}" title="Remove ${esc(p)}">${icon('close')}</button>
-    </span>`).join('');
-
-  const remaining = ALL_PLATFORMS.filter(p => !platforms.includes(p));
-  const addControl = remaining.length
-    ? `<select class="platform-chip-add" data-add-platform>
-         <option value="">+ Add platform</option>
-         ${remaining.map(p => `<option value="${p}">${p}</option>`).join('')}
-       </select>`
-    : '';
-
-  return `<div class="platform-chips">${chips}${addControl}</div>`;
+function renderPlatformRow(activePlatforms) {
+  const letters = ALL_PLATFORMS.map(p => {
+    const isActive = activePlatforms.includes(p);
+    return `<button type="button" class="platform-letter ${isActive ? 'active' : ''}"
+      data-platform-letter="${p}">${PLATFORM_ABBR[p]}</button>`;
+  }).join('');
+  return `<div class="platform-letter-row">${letters}</div>`;
 }
 
 /**
- * Wires up Card 1's interactive elements. Call after inserting the
- * markup from renderCard1() into the DOM.
- *
- * onChange is called whenever the platform list itself changes (add or
- * remove), so the caller can re-render this card in place to reflect
- * the updated chip list.
+ * Wires up Card 1's interactive elements.
+ * onChange fires whenever a platform is added, so the caller can
+ * re-render in place and recalculate that platform's new sequence.
  */
-export function bindCard1Events(container, draft, { onNext, onClose, onChange }) {
+export function bindCard1Events(container, draft, { onNext, onClose, onChange, onAddPlatform }) {
   container.querySelectorAll('[data-field]').forEach(input => {
     input.addEventListener('input', () => {
       draft[input.dataset.field] = input.value;
     });
   });
 
-  container.querySelectorAll('[data-remove-platform]').forEach(btn => {
+  container.querySelectorAll('[data-platform-letter]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const p = btn.dataset.removePlatform;
-      if (draft.platforms.length <= 1) return; // never leave a record with zero platforms
-      draft.platforms = draft.platforms.filter(x => x !== p);
+      const p = btn.dataset.platformLetter;
+      if (draft.platforms.includes(p)) {
+        window.showToast?.(`To remove ${p}, use the delete option in the index list.`, 'error');
+        return;
+      }
+      onAddPlatform?.(p);
       onChange?.();
     });
-  });
-
-  container.querySelector('[data-add-platform]')?.addEventListener('change', (e) => {
-    const p = e.target.value;
-    if (!p || draft.platforms.includes(p)) return;
-    draft.platforms = [...draft.platforms, p]; // additive — never touches existing platforms' data
-    onChange?.();
   });
 
   container.querySelector('[data-action="close"]')?.addEventListener('click', () => onClose(draft));
