@@ -4,10 +4,12 @@
 // Delivery details. Not all platforms are equal, so each platform gets
 // its own set of fields (title, description, keywords, hashtags, cta).
 // A tab strip lets Chef switch between platforms when content is filed
-// across more than one.
+// across more than one. Once a record has been saved at least once,
+// this card also shows its direct API link for quick reference.
 
-import { icon } from './icons.js?v=3';
-import { formatCardHeader } from './numbering.js?v=3';
+import { icon } from './icons.js?v=5';
+import { formatCardHeader } from './numbering.js?v=5';
+import { API_BASE } from './api.js?v=5';
 
 // Approximate public character guidance per platform — a helpful
 // reference while writing, not an enforced hard rule.
@@ -59,6 +61,14 @@ export function renderCard3(draft) {
     return `<div class="field-block"><label>${f.label}</label>${input}${counter}</div>`;
   }).join('');
 
+  // Only shows once the record has actually been saved (has a real id) —
+  // a brand-new unsaved record has nothing to link to yet.
+  const linkRow = draft.id ? `
+    <div class="record-link-row">
+      <span class="record-link-row__url" data-record-url>${esc(`${API_BASE}/api/records/${draft.id}`)}</span>
+      <button type="button" data-copy-link title="Copy link">${icon('link')}</button>
+    </div>` : '';
+
   return `
     <div class="record-card__header">
       <div class="record-card__id">${esc(headerId)}</div>
@@ -66,6 +76,7 @@ export function renderCard3(draft) {
     <div class="record-card__body" style="padding:0;">
       <div class="record-card__body--writing">
         <h2>Distribution Panel</h2>
+        ${linkRow}
         <div style="display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap;">${tabs}</div>
         <div data-dist-fields>${fields}</div>
       </div>
@@ -98,6 +109,14 @@ export function bindCard3Events(container, draft, { onBack, onSave, rerender }) 
         counter.textContent = `${field.value.length} / ${limit}`;
         counter.classList.toggle('over-limit', field.value.length > limit);
       }
+    });
+  });
+
+  container.querySelector('[data-copy-link]')?.addEventListener('click', () => {
+    const url = container.querySelector('[data-record-url]')?.textContent;
+    if (!url) return;
+    navigator.clipboard.writeText(url).then(() => {
+      window.showToast?.('Record link copied ✅');
     });
   });
 
