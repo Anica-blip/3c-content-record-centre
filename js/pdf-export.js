@@ -6,7 +6,7 @@
 // Uses jsPDF loaded on demand from CDN — no build step needed, matching
 // the rest of this repo's plain static-file approach.
 
-import { formatCardHeader } from './numbering.js?v=3';
+import { formatCardHeader } from './numbering.js?v=5';
 
 const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
