@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3C Content Record Centre</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=3" />
-  <link rel="stylesheet" href="css/style.css?v=3" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=5" />
+  <link rel="stylesheet" href="css/style.css?v=5" />
 </head>
 <body>
 
@@ -13,10 +13,10 @@
 
   <div class="container">
 
-    <!-- Top bar -->
-    <div class="topbar">
+    <!-- Top bar — dashboard view only -->
+    <div class="topbar" id="topbar">
       <div class="topbar__brand">
-        <img src="assets/3C%20Thread%20To%20Success%20logo.png?v=3" alt="3C" />
+        <img src="assets/3C%20Thread%20To%20Success%20logo.png?v=5" alt="3C" />
         <h1>3C Content Record Centre</h1>
       </div>
       <button class="icon-btn" id="logout-btn" title="Exit">
@@ -34,24 +34,40 @@
 
     <!-- List view -->
     <div id="list-view" class="hidden">
-      <div style="display:flex; align-items:center; gap:14px; margin-bottom:18px;">
-        <img id="list-banner" src="" alt="" style="height:60px; border-radius:8px; flex:1; object-fit:cover;" />
-        <img id="list-format-badge" src="" alt="" style="height:60px; border-radius:8px;" />
-        <button class="icon-btn" id="return-menu-btn" title="Return to Menu">
-          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 4v5h5"/></svg>
-        </button>
+      <div class="banner-row">
+        <div class="banner-row__media">
+          <img id="list-banner" src="" alt="" class="banner-row__banner" />
+          <img id="list-format-badge" src="" alt="" class="banner-row__badge" />
+          <button class="icon-btn" id="return-menu-btn" title="Return to Menu">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 4v5h5"/></svg>
+          </button>
+        </div>
+        <div class="watermark watermark--corner">
+          Designed and Built with ❤️ by Claude (Anthropic) × Chef Anica · 3C Thread To Success™ Cooking Lab 🧪👨‍🍳
+        </div>
       </div>
 
       <div class="search-row">
         <div class="search-bar">
           <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input type="search" id="search-input" placeholder="Search by category, persona, title, index, platform…" />
+          <input type="search" id="search-input" placeholder="Search by category, persona, title, index, platform, or paste a record URL…" />
           <svg class="clear-icon" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>
         </div>
         <button class="btn btn--primary" id="new-record-btn">+ New Record</button>
       </div>
 
-      <div id="pagination-label" class="pagination"></div>
+      <div class="pagination-row">
+        <span id="pagination-label" class="pagination"></span>
+        <div class="pagination-nav">
+          <button class="icon-btn" id="prev-page-btn" title="Previous page">
+            <svg viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <span id="page-indicator" class="page-indicator"></span>
+          <button class="icon-btn" id="next-page-btn" title="Next page">
+            <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
 
       <div id="index-rows"></div>
     </div>
@@ -68,8 +84,8 @@
   </div>
 
   <script type="module">
-    import { requireSession, logout } from './js/auth.js?v=3';
-    import { initIndexList, bindSearch, bindNewRecord, returnToMenu } from './js/index-list.js?v=3';
+    import { requireSession, logout } from './js/auth.js?v=5';
+    import { initIndexList, bindSearch, bindNewRecord, bindPagination, returnToMenu } from './js/index-list.js?v=5';
 
     (async () => {
       const user = await requireSession();
@@ -78,16 +94,10 @@
       await initIndexList();
       bindSearch();
       bindNewRecord();
+      bindPagination();
 
       document.getElementById('return-menu-btn').addEventListener('click', returnToMenu);
       document.getElementById('logout-btn').addEventListener('click', logout);
-
-      document.getElementById('card-overlay').addEventListener('click', (e) => {
-        if (e.target.id === 'card-overlay') {
-          // clicking the dark backdrop does not auto-close — cards must be
-          // closed deliberately via the Close/Save icon so edits aren't lost
-        }
-      });
     })();
 
     function showToast(msg, type = 'success') {
