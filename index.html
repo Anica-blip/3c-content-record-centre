@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>3C Content Record Centre</title>
-  <link rel="icon" type="image/png" href="assets/favicon.png?v=5" />
-  <link rel="stylesheet" href="css/style.css?v=5" />
+  <link rel="icon" type="image/png" href="assets/favicon.png?v=8" />
+  <link rel="stylesheet" href="css/style.css?v=8" />
 </head>
 <body>
 
@@ -16,7 +16,7 @@
     <!-- Top bar — dashboard view only -->
     <div class="topbar" id="topbar">
       <div class="topbar__brand">
-        <img src="assets/3C%20Thread%20To%20Success%20logo.png?v=5" alt="3C" />
+        <img src="assets/3C%20Thread%20To%20Success%20logo.png?v=8" alt="3C" />
         <h1>3C Content Record Centre</h1>
       </div>
       <button class="icon-btn" id="logout-btn" title="Exit">
@@ -30,10 +30,17 @@
         <div id="platform-rail" class="platform-rail"></div>
         <div id="format-grid" class="format-grid"></div>
       </div>
+      <div class="watermark">
+        Designed and Built with ❤️ by Claude (Anthropic) × Chef Anica · 3C Thread To Success™ Cooking Lab 🧪👨‍🍳
+      </div>
     </div>
 
     <!-- List view -->
     <div id="list-view" class="hidden">
+      <div class="watermark watermark--top">
+        Designed and Built with ❤️ by Claude (Anthropic) × Chef Anica · 3C Thread To Success™ Cooking Lab 🧪👨‍🍳
+      </div>
+
       <div class="banner-row">
         <div class="banner-row__media">
           <img id="list-banner" src="" alt="" class="banner-row__banner" />
@@ -41,9 +48,6 @@
           <button class="icon-btn" id="return-menu-btn" title="Return to Menu">
             <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 4v5h5"/></svg>
           </button>
-        </div>
-        <div class="watermark watermark--corner">
-          Designed and Built with ❤️ by Claude (Anthropic) × Chef Anica · 3C Thread To Success™ Cooking Lab 🧪👨‍🍳
         </div>
       </div>
 
@@ -79,13 +83,9 @@
     <div class="record-card" id="card-mount"></div>
   </div>
 
-  <div class="watermark">
-    Designed and Built with ❤️ by Claude (Anthropic) × Chef Anica · 3C Thread To Success™ Cooking Lab 🧪👨‍🍳
-  </div>
-
   <script type="module">
-    import { requireSession, logout } from './js/auth.js?v=5';
-    import { initIndexList, bindSearch, bindNewRecord, bindPagination, returnToMenu } from './js/index-list.js?v=5';
+    import { requireSession, logout } from './js/auth.js?v=8';
+    import { initIndexList, bindSearch, bindNewRecord, bindPagination, returnToMenu } from './js/index-list.js?v=8';
 
     (async () => {
       const user = await requireSession();
