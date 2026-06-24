@@ -5,11 +5,11 @@
 // references, Suno music notes, etc. Free-writing area — content here
 // can run longer than the card, so the body scrolls.
 
-import { icon } from './icons.js?v=5';
-import { formatCardHeader } from './numbering.js?v=5';
+import { icon } from './icons.js?v=8';
+import { formatCardHeaderForPlatform } from './numbering.js?v=8';
 
-export function renderCard2(draft) {
-  const headerId = draft.id ? formatCardHeader(draft.id) : 'NEW RECORD';
+export function renderCard2(draft, viewingPlatform) {
+  const headerId = draft.id ? formatCardHeaderForPlatform(draft, viewingPlatform) : 'NEW RECORD';
   draft.content = draft.content || { notes: '', references: '' };
 
   return `
