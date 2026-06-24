@@ -1,24 +1,62 @@
 // auth.js — Session guard for the Content Record Centre
 // 3C Content Record Centre · 3C Thread To Success™
 //
-// This module never touches a GitHub Client ID or Secret. It only talks
-// to the Worker's /auth/* endpoints, which handle the entire OAuth
-// exchange server-side. That is what makes this file safe to ship before
-// the Worker (and the GitHub OAuth App) even exist.
+// Uses a bearer token in localStorage, not a cookie. GitHub Pages
+// (anica-blip.github.io) and this Worker (recordmanagement.threadcommand.center)
+// are different sites — Firefox's Total Cookie Protection and Safari's ITP
+// both silently block a cookie set on one from ever being read on the
+// other. A token stored in localStorage and sent as an Authorization
+// header has no such restriction, since it never relies on the browser
+// choosing to forward a cookie cross-site.
 
-import { API_BASE } from './api.js';
+import { API_BASE } from './api.js?v=3';
+
+const TOKEN_KEY = '3c_session_token';
+
+/** Reads the stored session token, if any. */
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+/**
+ * Looks for a token handed back in the URL fragment after the GitHub
+ * OAuth round trip (#token=...), stores it, and cleans the URL so it
+ * doesn't linger visibly in the address bar.
+ */
+function captureTokenFromUrl() {
+  if (!window.location.hash.startsWith('#token=')) return;
+  const token = window.location.hash.slice('#token='.length);
+  setToken(token);
+  history.replaceState(null, '', window.location.pathname);
+}
 
 /**
  * Checks whether the current visitor has a valid session.
  * Returns the user object on success, or null if unauthenticated.
  */
 export async function checkSession() {
+  captureTokenFromUrl();
+  const token = getToken();
+  if (!token) return null;
+
   try {
     const res = await fetch(`${API_BASE}/auth/me`, {
-      credentials: 'include',
+      headers: { Authorization: `Bearer ${token}` },
     });
-    if (!res.ok) return null;
-    return await res.json();
+    if (!res.ok) {
+      clearToken();
+      return null;
+    }
+    const data = await res.json();
+    return data.user;
   } catch {
     return null;
   }
@@ -59,17 +97,10 @@ export function redirectToLogin() {
 }
 
 /**
- * Logs out — clears the session cookie on the Worker, then returns
- * to the login page.
+ * Logs out — there's no server-side session to clear with this token
+ * model, so this is purely local: remove the token, go back to login.
  */
-export async function logout() {
-  try {
-    await fetch(`${API_BASE}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    });
-  } catch {
-    // proceed to redirect regardless
-  }
+export function logout() {
+  clearToken();
   window.location.href = 'login.html';
 }
