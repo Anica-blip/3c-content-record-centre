@@ -303,17 +303,20 @@ textarea { resize: vertical; min-height: 90px; }
 .format-button {
   position: relative;
   border-radius: var(--radius-sm);
-  overflow: hidden;
   cursor: pointer;
-  border: none;
-  padding: 0;
-  transition: transform var(--transition);
-  display: block;
+  border: 1px solid rgba(120, 90, 220, 0.18);
+  padding: 12px;
+  transition: transform var(--transition), border-color var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
+  background: rgba(60, 30, 140, 0.10);
+  backdrop-filter: blur(6px);
 }
 
-.format-button:hover { transform: translateY(-2px); }
-.format-button img { width: 100%; display: block; }
+.format-button:hover { transform: translateY(-2px); border-color: rgba(148, 110, 255, 0.4); }
+.format-button img { width: 100%; display: block; border-radius: var(--radius-sm); }
 
 .format-button .index-badge {
   position: absolute;
@@ -355,11 +358,78 @@ textarea { resize: vertical; min-height: 90px; }
 
 .index-row__actions { display: flex; gap: 6px; flex-shrink: 0; }
 
-.pagination {
+/* ── Banner row (list view header) ───────────────────────── */
+.banner-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.banner-row__media {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.banner-row__banner {
+  flex: 1;
+  width: 100%;
+  aspect-ratio: 851 / 315;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.banner-row__badge {
+  height: 56px;
+  width: auto;
+  aspect-ratio: 480 / 191;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+/* ── Watermark — corner variant for list view ────────────── */
+.watermark--corner {
   text-align: right;
+  font-size: 0.62rem;
+  padding: 4px 0 0;
+  margin: 0;
+  max-width: 220px;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.pagination {
   font-weight: 700;
   color: var(--text-white);
+  font-size: 0.82rem;
+}
+
+/* ── Pagination ───────────────────────────────────────────── */
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 14px;
+}
+
+.pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-indicator {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ── Card popup system ───────────────────────────────────── */
@@ -456,6 +526,8 @@ textarea { resize: vertical; min-height: 90px; }
   border-radius: var(--radius-md);
   padding: 24px 22px;
   color: #1a1a1a;
+  max-height: 50vh;
+  overflow-y: auto;
 }
 
 .record-card__body--writing h2 {
@@ -510,6 +582,89 @@ textarea { resize: vertical; min-height: 90px; }
   margin-top: 4px;
 }
 .char-counter.over-limit { color: var(--danger); font-weight: 700; }
+
+/* ── Platform chips (Card 1 — multi-platform editor) ────────── */
+.platform-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.platform-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--orange);
+  border: 1px solid var(--orange-dim);
+  color: #1a1a1a;
+  border-radius: 20px;
+  padding: 4px 6px 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.platform-chip button {
+  background: none;
+  border: none;
+  color: #1a1a1a;
+  opacity: 0.65;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.platform-chip button:hover { opacity: 1; }
+.platform-chip button svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+.platform-chip-add {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+  color: var(--text-muted);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.platform-chip-add:hover { border-color: var(--violet); color: #fff; }
+
+/* ── Record link row (Card 3 — copyable API URL) ─────────────── */
+.record-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(35, 61, 255, 0.06);
+  border: 1px solid rgba(35, 61, 255, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  margin-bottom: 16px;
+}
+
+.record-link-row__url {
+  flex: 1;
+  font-size: 0.74rem;
+  color: var(--writing-font);
+  overflow-wrap: break-word;
+  word-break: break-all;
+}
+
+.record-link-row button {
+  background: var(--writing-font);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.record-link-row button svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; }
 
 /* ── Login page ───────────────────────────────────────────── */
 .login-wrap {
