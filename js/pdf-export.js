@@ -6,7 +6,7 @@
 // Uses jsPDF loaded on demand from CDN — no build step needed, matching
 // the rest of this repo's plain static-file approach.
 
-import { formatCardHeader } from './numbering.js?v=8';
+import { formatCardHeaderForPlatform, PLATFORM_ABBR, FORMAT_ABBR } from './numbering.js?v=9';
 
 const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
@@ -26,8 +26,9 @@ const FORMAT_COLOUR = { SV: [94, 23, 235], LV: [255, 188, 102], PC: [3, 228, 147
 export async function exportRecordPDF(draft) {
   const JsPDF = await loadJsPDF();
   const doc = new JsPDF({ unit: 'pt', format: 'a4' });
-  const headerId = draft.id ? formatCardHeader(draft.id) : 'NEW-RECORD';
-  const formatCode = draft.id ? draft.id.split('-')[1] : 'SV';
+  const homePlatform = draft.platforms?.[0];
+  const headerId = draft.id ? formatCardHeaderForPlatform(draft, homePlatform) : 'NEW-RECORD';
+  const formatCode = FORMAT_ABBR[draft.format] || 'SV';
   const colour = FORMAT_COLOUR[formatCode] || [94, 23, 235];
 
   // ── Page 1 — Card 1 ──────────────────────────────────────
@@ -66,7 +67,8 @@ export async function exportRecordPDF(draft) {
   // ── Page 3+ — Card 3, one page per platform ──────────────
   (draft.platforms || []).forEach(p => {
     doc.addPage();
-    drawHeader(doc, headerId, colour);
+    const platformHeaderId = formatCardHeaderForPlatform(draft, p);
+    drawHeader(doc, platformHeaderId, colour);
     const d = draft.distribution?.[p] || {};
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
@@ -74,7 +76,8 @@ export async function exportRecordPDF(draft) {
     doc.setFontSize(10);
     let dy = 124;
     [['Title', d.title], ['Description', d.description], ['Hashtags', d.hashtags],
-     ['Tags', d.tags], ['CTA', d.cta], ['Keywords', d.keywords]].forEach(([label, value]) => {
+     ['Tags', d.tags], ['CTA', d.cta], ['Keywords', d.keywords],
+     ['Platform Notes', d.platformNotes]].forEach(([label, value]) => {
       doc.setFont(undefined, 'bold');
       doc.text(`${label}:`, 50, dy);
       doc.setFont(undefined, 'normal');
