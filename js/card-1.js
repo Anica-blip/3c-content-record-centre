@@ -13,19 +13,19 @@
 // "remove from this platform only" vs "delete the whole record" is an
 // explicit choice, not an accidental tap.
 
-import { icon } from './icons.js?v=9';
+import { icon } from './icons.js?v=10';
 import {
   ALL_PLATFORMS, PLATFORM_ABBR, formatCardHeaderForPlatform,
-} from './numbering.js?v=9';
+} from './numbering.js?v=10';
 
 const FIELD_ORDER = [
   { key: 'category', label: 'Category' },
-  { key: 'title',     label: 'Title' },
+  { key: 'title',     label: 'Title',    wrap: true },
   { key: 'persona',   label: 'Persona' },
   { key: 'date',      label: 'Date',     pairWith: 'time', pairLabel: 'Time' },
   { key: 'format',    label: 'Format' },
   { key: 'playlist',  label: 'Playlist' },
-  { key: 'index',     label: 'Index' },
+  { key: 'index',     label: 'Index',    wrap: true },
 ];
 
 /**
@@ -54,7 +54,16 @@ export function renderCard1(draft, viewingPlatform) {
             style="background:none;border:none;color:#fff;flex:1;padding:0;font-size:0.92rem;" />
           <div class="record-card__field-label" style="margin-left:10px;">${f.pairLabel}</div>
           <input type="text" data-field="${f.pairWith}" value="${esc(draft[f.pairWith] || '')}"
-            style="background:none;border:none;color:#fff;flex:1;padding:0;font-size:0.92rem;" />
+            placeholder="HH:MM (24h)" maxlength="5"
+            style="background:none;border:none;border-bottom:1px dashed var(--border-strong);color:#fff;flex:1;padding:0 0 2px;font-size:0.92rem;" />
+        </div>`;
+    }
+    if (f.wrap) {
+      return `
+        <div class="record-card__field">
+          <div class="record-card__field-label">${f.label}</div>
+          <textarea data-field="${f.key}" rows="2"
+            style="background:none;border:none;color:#fff;flex:1;padding:0;font-size:0.92rem;resize:none;overflow-wrap:break-word;word-break:break-word;font-family:inherit;line-height:1.4;">${esc(draft[f.key] || '')}</textarea>
         </div>`;
     }
     return `
