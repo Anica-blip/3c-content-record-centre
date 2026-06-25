@@ -1,16 +1,16 @@
 // index-list.js — Dashboard + Index List + Card flow orchestration
 // 3C Content Record Centre · 3C Thread To Success™
 
-import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=10';
-import { icon } from './icons.js?v=10';
+import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=11';
+import { icon } from './icons.js?v=11';
 import {
   buildCanonicalId, nextSequence, formatIndexTailForPlatform,
   PLATFORM_ABBR, ALL_PLATFORMS,
-} from './numbering.js?v=10';
-import { renderCard1, bindCard1Events } from './card-1.js?v=10';
-import { renderCard2, bindCard2Events } from './card-2.js?v=10';
-import { renderCard3, bindCard3Events } from './card-3.js?v=10';
-import { exportRecordPDF } from './pdf-export.js?v=10';
+} from './numbering.js?v=11';
+import { renderCard1, bindCard1Events } from './card-1.js?v=11';
+import { renderCard2, bindCard2Events } from './card-2.js?v=11';
+import { renderCard3, bindCard3Events } from './card-3.js?v=11';
+import { exportRecordPDF } from './pdf-export.js?v=11';
 
 const PLATFORMS = ALL_PLATFORMS;
 const FORMATS   = ['short video', 'long video', 'post card'];
@@ -39,9 +39,25 @@ const FORMAT_BUTTON = {
 };
 
 export async function initIndexList() {
-  allRecords = await getRecords().catch(() => []);
-  sortNewestFirst();
+  await refreshRecords();
   renderDashboard();
+}
+
+/**
+ * Re-fetches the live list from storage. Called on every tab open, not
+ * just once at page load — so the index list always reflects what's
+ * actually in storage right now, not a snapshot from whenever the page
+ * happened to load. If the fetch genuinely fails, that's surfaced as a
+ * visible error instead of silently showing an empty list that looks
+ * identical to "there's nothing here."
+ */
+async function refreshRecords() {
+  try {
+    allRecords = await getRecords();
+    sortNewestFirst();
+  } catch (err) {
+    window.showToast?.(`Could not load records: ${err.message}`, 'error');
+  }
 }
 
 function sortNewestFirst() {
@@ -84,7 +100,7 @@ function renderDashboard() {
 }
 
 // ── List view ─────────────────────────────────────────────
-function openListView(platform, format) {
+async function openListView(platform, format) {
   activePlatform = platform;
   activeFormat = format;
   searchQuery = '';
@@ -92,6 +108,7 @@ function openListView(platform, format) {
   document.getElementById('dashboard-view').classList.add('hidden');
   document.getElementById('list-view').classList.remove('hidden');
   setTopbarVisible(false);
+  await refreshRecords();
   renderListView();
 }
 
