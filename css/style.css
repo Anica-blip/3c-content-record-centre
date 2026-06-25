@@ -354,6 +354,18 @@ textarea { resize: vertical; min-height: 90px; }
 .index-row__platforms { color: var(--orange); font-weight: 700; }
 .index-row__platforms .inactive { color: var(--text-faint); }
 
+.index-row__truncate {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+.index-row__truncate--persona { max-width: 70px; }
+.index-row__truncate--title   { max-width: 220px; }
+
+.index-row__seq { color: var(--orange); font-weight: 800; }
+
 .index-row__date { color: var(--text-muted); white-space: nowrap; font-size: 0.82rem; }
 
 .index-row__actions { display: flex; gap: 6px; flex-shrink: 0; }
