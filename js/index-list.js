@@ -245,6 +245,57 @@ export function bindPagination() {
   });
 }
 
+const CSV_COLUMNS = [
+  'ID', 'Category', 'Title', 'Persona', 'Date', 'Time', 'Format',
+  'Playlist', 'Index', 'Platforms', 'Numbers', 'Created', 'Updated',
+];
+
+function csvEscape(value) {
+  const str = String(value ?? '');
+  if (/[",\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+/**
+ * Exports exactly what the index list shows — one row per record, Card 1
+ * fields only. Card 2 production notes and Card 3 distribution details
+ * are deliberately left out; this is "the main card," not the deep data.
+ * Always refreshes from the server first, so the export is guaranteed
+ * complete rather than relying on whatever happens to be cached.
+ */
+export function bindExportCSV() {
+  document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
+    await refreshRecords();
+
+    const rows = allRecords.map(r => {
+      const numbers = r.platforms
+        .map(p => `${PLATFORM_ABBR[p]}: ${String(r.sequences?.[p] ?? '').padStart(3, '0')}`)
+        .join(', ');
+      return [
+        r.id, r.category, r.title, r.persona, r.date, r.time, r.format,
+        r.playlist, r.index, r.platforms.join(', '), numbers, r.created, r.updated,
+      ];
+    });
+
+    const csv = [CSV_COLUMNS, ...rows]
+      .map(row => row.map(csvEscape).join(','))
+      .join('\r\n');
+
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `3c-content-record-centre-export-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    window.showToast?.(`Exported ${rows.length} row${rows.length === 1 ? '' : 's'} ✅`);
+  });
+}
+
 export function bindNewRecord() {
   document.getElementById('new-record-btn')?.addEventListener('click', () => {
     const blank = {
