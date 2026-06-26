@@ -1,16 +1,16 @@
 // index-list.js — Dashboard + Index List + Card flow orchestration
 // 3C Content Record Centre · 3C Thread To Success™
 
-import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=12';
-import { icon } from './icons.js?v=12';
+import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=13';
+import { icon } from './icons.js?v=13';
 import {
-  buildCanonicalId, nextSequence, formatIndexTailForPlatform,
+  buildCanonicalId, nextSequence, formatIndexTailForPlatform, parseDateParts,
   PLATFORM_ABBR, ALL_PLATFORMS,
-} from './numbering.js?v=12';
-import { renderCard1, bindCard1Events } from './card-1.js?v=12';
-import { renderCard2, bindCard2Events } from './card-2.js?v=12';
-import { renderCard3, bindCard3Events } from './card-3.js?v=12';
-import { exportRecordPDF } from './pdf-export.js?v=12';
+} from './numbering.js?v=13';
+import { renderCard1, bindCard1Events } from './card-1.js?v=13';
+import { renderCard2, bindCard2Events } from './card-2.js?v=13';
+import { renderCard3, bindCard3Events } from './card-3.js?v=13';
+import { exportRecordPDF } from './pdf-export.js?v=13';
 
 const PLATFORMS = ALL_PLATFORMS;
 const FORMATS   = ['short video', 'long video', 'post card'];
@@ -179,7 +179,6 @@ function findRecord(id) {
 function renderRow(r) {
   const tail = formatIndexTailForPlatform(r, activePlatform);
   const [monthYear, seq] = splitTailForDisplay(tail);
-  const [leadingZeros, significant] = splitLeadingZeros(seq);
 
   const lettersHtml = ALL_PLATFORMS.map(p => {
     const isActive = r.platforms.includes(p);
@@ -195,7 +194,7 @@ function renderRow(r) {
         <span class="index-row__truncate index-row__truncate--title">${esc(r.title)}</span> -
         ${esc(r.index)} -
         <span class="index-row__platforms">${lettersHtml}</span> -
-        ${monthYear}<span class="index-row__seq-zeros">${leadingZeros}</span><span class="index-row__seq">${significant}</span>
+        ${monthYear}<span class="index-row__seq">${seq}</span>
       </div>
       <div class="index-row__actions">
         <button class="icon-btn" data-edit="${r.id}" title="Edit">${icon('edit')}</button>
@@ -207,18 +206,12 @@ function renderRow(r) {
     </div>`;
 }
 
-/** Splits "06.2026.001" into ["06.2026.", "001"] so the sequence
- * number alone can be styled in pastel orange. */
+/** Splits "06.2026.001" into ["06.2026.", "001"] so the full sequence
+ * number — matching exactly what's shown on the card — can be styled
+ * in pastel orange as one unit. */
 function splitTailForDisplay(tail) {
   const lastDot = tail.lastIndexOf('.');
   return [tail.slice(0, lastDot + 1), tail.slice(lastDot + 1)];
-}
-
-/** Splits "001" into ["00", "1"] — leading padding zeros stay grey,
- * the actual significant digit(s) get the orange highlight. */
-function splitLeadingZeros(seqStr) {
-  const match = seqStr.match(/^(0*)(\d+)$/);
-  return match ? [match[1], match[2]] : ['', seqStr];
 }
 
 export function returnToMenu() {
@@ -256,9 +249,9 @@ export function bindNewRecord() {
   document.getElementById('new-record-btn')?.addEventListener('click', () => {
     const blank = {
       id: null,
-      category: 'Campaign',
+      category: '',
       title: '',
-      persona: 'Falcon',
+      persona: '',
       date: new Date().toISOString().slice(0, 10),
       time: '',
       format: activeFormat,
@@ -350,7 +343,10 @@ function renderCurrentStep() {
     mount.innerHTML = renderCard1(currentDraft, viewingPlatform);
     bindCard1Events(mount, currentDraft, {
       onNext: (draft) => { currentStep = 2; renderCurrentStep(); },
-      onClose: async (draft) => { await persistDraft(draft); finishCardFlow(); },
+      onClose: async (draft) => {
+        if (!draft.title.trim()) { window.showToast?.('Add a title before closing — empty records are never saved.', 'error'); return; }
+        await persistDraft(draft); finishCardFlow();
+      },
       onChange: () => renderCurrentStep(),
       onAddPlatform: (platform) => {
         if (!currentDraft.platforms.includes(platform)) {
@@ -374,7 +370,10 @@ function renderStep3() {
   mount.innerHTML = renderCard3(currentDraft);
   bindCard3Events(mount, currentDraft, {
     onBack: (draft) => { currentStep = 2; renderCurrentStep(); },
-    onSave: async (draft) => { await persistDraft(draft); finishCardFlow(); },
+    onSave: async (draft) => {
+      if (!draft.title.trim()) { window.showToast?.('Add a title before saving — empty records are never saved.', 'error'); return; }
+      await persistDraft(draft); finishCardFlow();
+    },
     rerender: () => renderStep3(),
   });
 }
@@ -395,12 +394,13 @@ async function persistDraft(draft) {
 
   if (!draft.id) {
     const homePlatform = draft.platforms[0];
+    const { year, month } = parseDateParts(draft.date);
     draft.id = buildCanonicalId({
       platform: homePlatform,
       format: draft.format,
       persona: draft.persona,
-      month: draft.date.slice(5, 7),
-      year: draft.date.slice(0, 4),
+      month,
+      year,
       sequence: draft.sequences[homePlatform],
     });
     draft.created = new Date().toISOString();
