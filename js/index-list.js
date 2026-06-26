@@ -1,16 +1,16 @@
 // index-list.js — Dashboard + Index List + Card flow orchestration
 // 3C Content Record Centre · 3C Thread To Success™
 
-import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=11';
-import { icon } from './icons.js?v=11';
+import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=12';
+import { icon } from './icons.js?v=12';
 import {
   buildCanonicalId, nextSequence, formatIndexTailForPlatform,
   PLATFORM_ABBR, ALL_PLATFORMS,
-} from './numbering.js?v=11';
-import { renderCard1, bindCard1Events } from './card-1.js?v=11';
-import { renderCard2, bindCard2Events } from './card-2.js?v=11';
-import { renderCard3, bindCard3Events } from './card-3.js?v=11';
-import { exportRecordPDF } from './pdf-export.js?v=11';
+} from './numbering.js?v=12';
+import { renderCard1, bindCard1Events } from './card-1.js?v=12';
+import { renderCard2, bindCard2Events } from './card-2.js?v=12';
+import { renderCard3, bindCard3Events } from './card-3.js?v=12';
+import { exportRecordPDF } from './pdf-export.js?v=12';
 
 const PLATFORMS = ALL_PLATFORMS;
 const FORMATS   = ['short video', 'long video', 'post card'];
@@ -179,6 +179,7 @@ function findRecord(id) {
 function renderRow(r) {
   const tail = formatIndexTailForPlatform(r, activePlatform);
   const [monthYear, seq] = splitTailForDisplay(tail);
+  const [leadingZeros, significant] = splitLeadingZeros(seq);
 
   const lettersHtml = ALL_PLATFORMS.map(p => {
     const isActive = r.platforms.includes(p);
@@ -194,7 +195,7 @@ function renderRow(r) {
         <span class="index-row__truncate index-row__truncate--title">${esc(r.title)}</span> -
         ${esc(r.index)} -
         <span class="index-row__platforms">${lettersHtml}</span> -
-        ${monthYear}<span class="index-row__seq">${seq}</span>
+        ${monthYear}<span class="index-row__seq-zeros">${leadingZeros}</span><span class="index-row__seq">${significant}</span>
       </div>
       <div class="index-row__actions">
         <button class="icon-btn" data-edit="${r.id}" title="Edit">${icon('edit')}</button>
@@ -206,11 +207,18 @@ function renderRow(r) {
     </div>`;
 }
 
-/** Splits "06.2026.0001" into ["06.2026.", "0001"] so the sequence
+/** Splits "06.2026.001" into ["06.2026.", "001"] so the sequence
  * number alone can be styled in pastel orange. */
 function splitTailForDisplay(tail) {
   const lastDot = tail.lastIndexOf('.');
   return [tail.slice(0, lastDot + 1), tail.slice(lastDot + 1)];
+}
+
+/** Splits "001" into ["00", "1"] — leading padding zeros stay grey,
+ * the actual significant digit(s) get the orange highlight. */
+function splitLeadingZeros(seqStr) {
+  const match = seqStr.match(/^(0*)(\d+)$/);
+  return match ? [match[1], match[2]] : ['', seqStr];
 }
 
 export function returnToMenu() {
