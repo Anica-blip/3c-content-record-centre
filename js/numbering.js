@@ -75,7 +75,7 @@ export function formatIndexTailForPlatform(record, platform) {
   const mm   = (record.date || '').slice(5, 7);
   const yyyy = (record.date || '').slice(0, 4);
   const seq  = record.sequences?.[platform];
-  const seqStr = seq != null ? String(seq).padStart(4, '0') : '----';
+  const seqStr = seq != null ? String(seq).padStart(3, '0') : '---';
   return `${mm}.${yyyy}.${seqStr}`;
 }
 
