@@ -6,7 +6,7 @@
 // Uses jsPDF loaded on demand from CDN — no build step needed, matching
 // the rest of this repo's plain static-file approach.
 
-import { formatCardHeaderForPlatform, PLATFORM_ABBR, FORMAT_ABBR } from './numbering.js?v=10';
+import { formatCardHeaderForPlatform, PLATFORM_ABBR, FORMAT_ABBR } from './numbering.js?v=12';
 
 const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
@@ -22,6 +22,19 @@ function loadJsPDF() {
 }
 
 const FORMAT_COLOUR = { SV: [94, 23, 235], LV: [255, 188, 102], PC: [3, 228, 147] };
+
+// jsPDF's built-in fonts only support the Latin-1/WinAnsi character set —
+// any emoji falls outside that entirely and comes out as garbled bytes
+// rather than failing cleanly. Stripping them keeps the PDF readable;
+// embedding a full emoji-capable font would be a much bigger lift for
+// what's mainly a working-content backup, not a branded deliverable.
+function cleanForPdf(str) {
+  if (!str) return str;
+  return String(str).replace(
+    /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,
+    ''
+  );
+}
 
 export async function exportRecordPDF(draft) {
   const JsPDF = await loadJsPDF();
@@ -45,7 +58,7 @@ export async function exportRecordPDF(draft) {
     doc.setFont(undefined, 'bold');
     doc.text(`${label}:`, 50, y);
     doc.setFont(undefined, 'normal');
-    doc.text(String(value || '—'), 150, y, { maxWidth: 380 });
+    doc.text(cleanForPdf(String(value || '—')), 150, y, { maxWidth: 380 });
     y += 28;
   });
 
@@ -57,12 +70,13 @@ export async function exportRecordPDF(draft) {
   doc.text('Content Panel', 50, 100);
   doc.setFontSize(10);
   doc.setFont(undefined, 'normal');
-  doc.text(draft.content?.notes || '(no production notes yet)', 50, 124, { maxWidth: 495 });
-  const notesHeight = doc.getTextDimensions(draft.content?.notes || '', { maxWidth: 495 }).h;
+  const notesText = cleanForPdf(draft.content?.notes || '(no production notes yet)');
+  doc.text(notesText, 50, 124, { maxWidth: 495 });
+  const notesHeight = doc.getTextDimensions(notesText, { maxWidth: 495 }).h;
   doc.setFont(undefined, 'italic');
   doc.text('References:', 50, 130 + notesHeight + 16);
   doc.setFont(undefined, 'normal');
-  doc.text(draft.content?.references || '—', 50, 130 + notesHeight + 32, { maxWidth: 495 });
+  doc.text(cleanForPdf(draft.content?.references || '—'), 50, 130 + notesHeight + 32, { maxWidth: 495 });
 
   // ── Page 3+ — Card 3, one page per platform ──────────────
   (draft.platforms || []).forEach(p => {
@@ -81,7 +95,7 @@ export async function exportRecordPDF(draft) {
       doc.setFont(undefined, 'bold');
       doc.text(`${label}:`, 50, dy);
       doc.setFont(undefined, 'normal');
-      const lines = doc.splitTextToSize(String(value || '—'), 420);
+      const lines = doc.splitTextToSize(cleanForPdf(String(value || '—')), 420);
       doc.text(lines, 150, dy);
       dy += 18 + (lines.length - 1) * 14;
     });
