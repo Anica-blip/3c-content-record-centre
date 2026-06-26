@@ -140,9 +140,15 @@ async function listRecords(url, env) {
   const listing = await env.RECORDS_BUCKET.list({ prefix: env.RECORDS_PREFIX });
   const records = [];
   for (const obj of listing.objects) {
-    const file = await env.RECORDS_BUCKET.get(obj.key);
-    if (!file) continue;
-    records.push(await file.json());
+    try {
+      const file = await env.RECORDS_BUCKET.get(obj.key);
+      if (!file) continue;
+      records.push(await file.json());
+    } catch {
+      // One unreadable/corrupted record must never take the whole list
+      // down — skip it and keep going.
+      continue;
+    }
   }
 
   const platform = url.searchParams.get('platform');
@@ -262,11 +268,10 @@ function withCookie(response, name, value, { maxAge }) {
 
 // ── CORS + JSON helpers ──────────────────────────────────────
 function corsResponse(env, response) {
-  const res = new Response(response.body, response);
-  res.headers.set('Access-Control-Allow-Origin', env.ALLOWED_ORIGIN);
-  res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return res;
+  response.headers.set('Access-Control-Allow-Origin', env.ALLOWED_ORIGIN);
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  return response;
 }
 
 function jsonResponse(data, status = 200) {
