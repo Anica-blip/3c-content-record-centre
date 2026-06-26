@@ -208,15 +208,15 @@ textarea { resize: vertical; min-height: 90px; }
 }
 
 .search-bar input {
-  background: #faf6e9;
-  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-white);
   border: none;
   border-radius: 8px;
   padding: 9px 38px 9px 38px;
   font-weight: 600;
 }
 
-.search-bar input::placeholder { color: #8a8a7a; }
+.search-bar input::placeholder { color: rgba(255, 255, 255, 0.45); }
 
 .search-bar .search-icon {
   position: absolute;
@@ -225,7 +225,7 @@ textarea { resize: vertical; min-height: 90px; }
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
-  stroke: #6a6a5a;
+  stroke: rgba(255, 255, 255, 0.6);
   fill: none;
   stroke-width: 2;
   pointer-events: none;
@@ -238,7 +238,7 @@ textarea { resize: vertical; min-height: 90px; }
   transform: translateY(-50%);
   width: 18px;
   height: 18px;
-  stroke: #6a6a5a;
+  stroke: rgba(255, 255, 255, 0.6);
   fill: none;
   stroke-width: 2;
   cursor: pointer;
@@ -382,14 +382,14 @@ textarea { resize: vertical; min-height: 90px; }
   display: flex;
   align-items: center;
   gap: 14px;
+  width: 100%;
   min-width: 280px;
 }
 
 .banner-row__banner {
-  flex: 0 1 auto;
-  width: 100%;
-  max-width: 840px;
-  height: 150px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 110px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.03);
@@ -404,16 +404,15 @@ textarea { resize: vertical; min-height: 90px; }
   flex-shrink: 0;
 }
 
-/* ── Watermark — sits right next to the return-menu button, in the
-   same flex row, so it's physically anchored to it rather than
-   independently right-aligned to an edge that doesn't match ── */
+/* ── Watermark — full-width single line above the list view,
+   right-margin aligned to the page, not the banner row ── */
 .watermark--top {
-  text-align: left;
-  font-size: 0.68rem;
-  padding: 0;
+  text-align: right;
+  font-size: 0.7rem;
+  padding: 0 0 14px;
   margin: 0 !important;
-  max-width: 220px;
-  line-height: 1.3;
+  white-space: nowrap;
+  overflow-x: auto;
 }
 
 .pagination {
