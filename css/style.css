@@ -340,7 +340,7 @@ textarea { resize: vertical; min-height: 90px; }
   gap: 12px;
   padding: 12px 6px;
   border-bottom: 1px solid var(--border);
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   color: var(--text-white);
 }
 
@@ -351,7 +351,8 @@ textarea { resize: vertical; min-height: 90px; }
   word-break: break-word;
 }
 
-.index-row__platforms { color: var(--orange); font-weight: 700; }
+.index-row__platforms { font-weight: 700; }
+.index-row__platforms .active { color: var(--orange); }
 .index-row__platforms .inactive { color: var(--text-faint); }
 
 .index-row__truncate {
@@ -361,9 +362,10 @@ textarea { resize: vertical; min-height: 90px; }
   text-overflow: ellipsis;
   vertical-align: bottom;
 }
-.index-row__truncate--persona { max-width: 70px; }
-.index-row__truncate--title   { max-width: 220px; }
+.index-row__truncate--persona { max-width: 50px; }
+.index-row__truncate--title   { max-width: 160px; }
 
+.index-row__seq-zeros { color: var(--text-faint); font-weight: 800; }
 .index-row__seq { color: var(--orange); font-weight: 800; }
 
 .index-row__date { color: var(--text-muted); white-space: nowrap; font-size: 0.82rem; }
