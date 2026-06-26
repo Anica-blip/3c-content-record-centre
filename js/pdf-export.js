@@ -6,7 +6,7 @@
 // Uses jsPDF loaded on demand from CDN — no build step needed, matching
 // the rest of this repo's plain static-file approach.
 
-import { formatCardHeaderForPlatform, PLATFORM_ABBR, FORMAT_ABBR } from './numbering.js?v=12';
+import { formatCardHeaderForPlatform, PLATFORM_ABBR, FORMAT_ABBR } from './numbering.js?v=13';
 
 const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
@@ -23,15 +23,16 @@ function loadJsPDF() {
 
 const FORMAT_COLOUR = { SV: [94, 23, 235], LV: [255, 188, 102], PC: [3, 228, 147] };
 
-// jsPDF's built-in fonts only support the Latin-1/WinAnsi character set —
-// any emoji falls outside that entirely and comes out as garbled bytes
-// rather than failing cleanly. Stripping them keeps the PDF readable;
-// embedding a full emoji-capable font would be a much bigger lift for
-// what's mainly a working-content backup, not a branded deliverable.
+// jsPDF's built-in fonts only support a specific set of characters —
+// far narrower than "all of Unicode." Trying to strip emoji range by
+// range left fragments behind (and likely caused the font-size glitches
+// too, since leftover bytes confuse jsPDF's text-width calculations).
+// Safer approach: keep plain ASCII plus a short list of typographic
+// characters the font actually supports, strip everything else.
 function cleanForPdf(str) {
   if (!str) return str;
   return String(str).replace(
-    /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F1E6}-\u{1F1FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu,
+    /[^\x20-\x7E\n\r\t\u2013\u2014\u2018\u2019\u201C\u201D\u2026\u2022\u00A9\u00AE\u2122\u00B0]/gu,
     ''
   );
 }
