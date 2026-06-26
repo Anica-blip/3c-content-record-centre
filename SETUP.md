@@ -67,7 +67,13 @@ Whatever's written in this file is what Cloudflare ends up with — bindings, va
 2. Browser favicon cache specifically (Firefox keeps this separate — a normal cache clear doesn't always touch it)
 3. GitHub Pages' own CDN edge cache (separate from both of the above)
 
-**The actual fix for this, built into the code:** every CSS link, JS import, and image reference across the front-end carries a version query string (e.g. `?v=8`). Whenever a real change is made to any file, **bump the number across every reference at once** — that forces a fresh fetch regardless of what any cache layer thinks it already has. This is now standard practice for this repo, not a one-off patch.
+**The actual fix for this, built into the code:** every CSS link, JS import, and image reference carries a version query string (e.g. `?v=11`). The correct rule is narrow, not blanket: when a file's *content* changes, bump the version only in the place(s) that *import or link to* that specific file — not in every file project-wide. E.g. if `card-3.js` changes, only `index-list.js` (the one file that imports it) needs its reference bumped; files that don't import `card-3.js` at all need no change. Only deliver/copy the files that actually changed plus whichever single file imports each of them — never the whole project for a one-file fix.
+
+**Never extract date parts by counting characters — the Date field is free-typed text, not a fixed format.**
+Chef types dates naturally (e.g. "Thu 25.06"), not strictly as `YYYY-MM-DD`. Early code pulled month/year out of `record.date` using `.slice(5,7)` etc. — fine for the ISO default, but it silently produced garbage (e.g. an ID containing `"5..u"`) the moment she typed anything else, since it was blindly counting character positions rather than understanding the string. Fixed by `numbering.js`'s `parseDateParts()`, which regex-matches an actual `YYYY-MM-DD` pattern anywhere in the string and falls back to today's date if it can't find one — never go back to positional slicing for date data anywhere in this repo.
+
+**jsPDF's built-in fonts cannot render emoji — full stop, not a bug to keep chasing.**
+Attempting to strip emoji range-by-range left fragments behind and produced inconsistent text spacing. The robust fix is the opposite approach: keep an *allowlist* of characters the font actually supports (plain ASCII + a handful of typographic characters like em-dash and smart quotes) and strip everything else. If a future card type needs real emoji in its PDF, that requires embedding a full Unicode font in jsPDF — a real undertaking, not a quick fix.
 
 ---
 
@@ -95,6 +101,7 @@ One JSON record can be filed under several platforms at once, without ever dupli
 - Nothing persists to storage until Card 1's Close or Card 3's Save — Next/Back between cards is in-memory only.
 - Removing a platform (via the index list's delete flow) only ever clears that platform's own `sequences` and `distribution` entries — every other platform's data is untouched. "Delete entire record" is always a deliberate second choice, never the default.
 - `platformNotes` (bottom of each Card 3 tab) is the general-purpose escape hatch for any platform-specific tweak that isn't one of the standard distribution fields — Card 1 and Card 2 stay shared/singular, this is where a platform-specific deviation gets noted instead.
+- A record can never persist without a Title. Early on, blank new records were pre-filled with realistic-looking placeholder values (`Campaign` / `Falcon`) — clicking through without typing anything still saved a real file, since nothing distinguished "untouched default" from "deliberately filled in." Fixed by making new-record defaults genuinely empty and blocking both Card 1's Close and Card 3's Save until Title has something in it.
 
 ---
 
