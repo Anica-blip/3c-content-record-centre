@@ -15,7 +15,7 @@
 
 import { icon } from './icons.js?v=13';
 import {
-  ALL_PLATFORMS, PLATFORM_ABBR, formatCardHeaderForPlatform,
+  ALL_PLATFORMS, PLATFORM_ABBR, formatCardHeaderForPlatform, parseDateParts,
 } from './numbering.js?v=13';
 
 const FIELD_ORDER = [
@@ -37,7 +37,7 @@ export function renderCard1(draft, viewingPlatform) {
   draft.platforms = draft.platforms || [];
   draft.sequences = draft.sequences || {};
   const headerId = draft.id ? formatCardHeaderForPlatform(draft, viewingPlatform) : 'NEW RECORD';
-  const year = draft.date ? draft.date.slice(0, 4) : new Date().getFullYear();
+  const { year } = parseDateParts(draft.date);
 
   const platformFieldHtml = `
     <div class="record-card__field">
