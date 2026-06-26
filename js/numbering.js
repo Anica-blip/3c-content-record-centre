@@ -36,6 +36,29 @@ export const PERSONA_ABBR = {
   All:     'AL',
 };
 
+/** Case-insensitive lookup — typing ALL, All, or all should all resolve to AL. */
+function lookupPersonaAbbr(persona) {
+  const key = Object.keys(PERSONA_ABBR).find(
+    k => k.toLowerCase() === String(persona || '').toLowerCase()
+  );
+  return key ? PERSONA_ABBR[key] : persona;
+}
+
+/**
+ * Extracts a real {year, month} from record.date — which is free-typed
+ * text, not guaranteed to be ISO format. Looks for an actual YYYY-MM-DD
+ * pattern anywhere in the string; if nothing recognisable is found,
+ * falls back to today's date rather than producing garbage from blind
+ * character-position slicing (typing "Thu 25.06" must never corrupt
+ * the ID — it should just fall back safely instead).
+ */
+export function parseDateParts(dateStr) {
+  const match = /(\d{4})-(\d{2})-(\d{2})/.exec(dateStr || '');
+  if (match) return { year: match[1], month: match[2] };
+  const now = new Date();
+  return { year: String(now.getFullYear()), month: String(now.getMonth() + 1).padStart(2, '0') };
+}
+
 /**
  * Builds the storage-key ID for a record — based on whichever platform
  * is the "home" platform (the one it was first created under). This is
@@ -44,7 +67,7 @@ export const PERSONA_ABBR = {
 export function buildCanonicalId({ platform, format, persona, month, year, sequence }) {
   const p  = PLATFORM_ABBR[platform]   || platform;
   const f  = FORMAT_ABBR[format]       || format;
-  const pr = PERSONA_ABBR[persona]     || persona;
+  const pr = lookupPersonaAbbr(persona);
   const mm = String(month).padStart(2, '0');
   const yyyy = String(year);
   const seq = String(sequence).padStart(4, '0');
@@ -59,24 +82,23 @@ export function buildCanonicalId({ platform, format, persona, month, year, seque
 export function formatCardHeaderForPlatform(record, platform) {
   const abbr = PLATFORM_ABBR[platform] || platform;
   const f    = FORMAT_ABBR[record.format] || record.format;
-  const pr   = PERSONA_ABBR[record.persona] || record.persona;
-  const mm   = (record.date || '').slice(5, 7);
-  const yy   = (record.date || '').slice(2, 4);
+  const pr   = lookupPersonaAbbr(record.persona);
+  const { year, month } = parseDateParts(record.date);
+  const yy   = year.slice(-2);
   const seq  = record.sequences?.[platform];
   const seqStr = seq != null ? String(seq).padStart(3, '0') : '---';
-  return `${abbr}-${f}-${pr}-${mm}.${yy}-${seqStr}`;
+  return `${abbr}-${f}-${pr}-${month}.${yy}-${seqStr}`;
 }
 
 /**
  * Index list display tail for a specific platform — matches the Canva
- * mockup: 06.2026.0055
+ * mockup: 06.2026.001
  */
 export function formatIndexTailForPlatform(record, platform) {
-  const mm   = (record.date || '').slice(5, 7);
-  const yyyy = (record.date || '').slice(0, 4);
+  const { year, month } = parseDateParts(record.date);
   const seq  = record.sequences?.[platform];
   const seqStr = seq != null ? String(seq).padStart(3, '0') : '---';
-  return `${mm}.${yyyy}.${seqStr}`;
+  return `${month}.${year}.${seqStr}`;
 }
 
 /**
