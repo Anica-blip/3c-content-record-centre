@@ -9,7 +9,7 @@
 // header has no such restriction, since it never relies on the browser
 // choosing to forward a cookie cross-site.
 
-import { API_BASE } from './api.js?v=12';
+import { API_BASE } from './api.js?v=13';
 
 const TOKEN_KEY = '3c_session_token';
 
