@@ -1,7 +1,7 @@
 // index-list.js — Dashboard + Index List + Card flow orchestration
 // 3C Content Record Centre · 3C Thread To Success™
 
-import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=13';
+import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v=19';
 import { icon } from './icons.js?v=13';
 import {
   buildCanonicalId, nextSequence, formatIndexTailForPlatform, parseDateParts,
@@ -9,7 +9,7 @@ import {
 } from './numbering.js?v=13';
 import { renderCard1, bindCard1Events } from './card-1.js?v=18';
 import { renderCard2, bindCard2Events } from './card-2.js?v=13';
-import { renderCard3, bindCard3Events } from './card-3.js?v=13';
+import { renderCard3, bindCard3Events } from './card-3.js?v=19';
 import { exportRecordPDF } from './pdf-export.js?v=13';
 
 const PLATFORMS = ALL_PLATFORMS;
@@ -378,7 +378,11 @@ function handleSchedule(record) {
 
 // ── Card flow (overlay) ───────────────────────────────────
 function openCardFlow(record, openedFromPlatform) {
-  currentDraft = record;
+  // A real copy, not a reference — editing must never mutate the live
+  // in-memory list until a save genuinely succeeds. Without this, typing
+  // into a field updates the on-screen list instantly, looking saved,
+  // even if no save has actually happened yet.
+  currentDraft = JSON.parse(JSON.stringify(record));
   viewingPlatform = openedFromPlatform || record.platforms[0];
   currentStep = 1;
   document.getElementById('card-overlay').classList.add('active');
@@ -399,7 +403,12 @@ function renderCurrentStep() {
       onNext: (draft) => { currentStep = 2; renderCurrentStep(); },
       onClose: async (draft) => {
         if (!draft.title.trim()) { window.showToast?.('Add a title before closing — empty records are never saved.', 'error'); return; }
-        await persistDraft(draft); finishCardFlow();
+        try {
+          await persistDraft(draft);
+          finishCardFlow();
+        } catch (err) {
+          window.showToast?.(`Save failed: ${err.message} — your edits are still open, try again.`, 'error');
+        }
       },
       onChange: () => renderCurrentStep(),
       onAddPlatform: (platform) => {
@@ -426,7 +435,12 @@ function renderStep3() {
     onBack: (draft) => { currentStep = 2; renderCurrentStep(); },
     onSave: async (draft) => {
       if (!draft.title.trim()) { window.showToast?.('Add a title before saving — empty records are never saved.', 'error'); return; }
-      await persistDraft(draft); finishCardFlow();
+      try {
+        await persistDraft(draft);
+        finishCardFlow();
+      } catch (err) {
+        window.showToast?.(`Save failed: ${err.message} — your edits are still open, try again.`, 'error');
+      }
     },
     rerender: () => renderStep3(),
   });
