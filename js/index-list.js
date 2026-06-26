@@ -5,9 +5,9 @@ import { getRecords, createRecord, updateRecord, deleteRecord } from './api.js?v
 import { icon } from './icons.js?v=13';
 import {
   buildCanonicalId, nextSequence, formatIndexTailForPlatform, parseDateParts,
-  PLATFORM_ABBR, ALL_PLATFORMS,
+  PLATFORM_ABBR, FORMAT_ABBR, ALL_PLATFORMS,
 } from './numbering.js?v=13';
-import { renderCard1, bindCard1Events } from './card-1.js?v=13';
+import { renderCard1, bindCard1Events } from './card-1.js?v=18';
 import { renderCard2, bindCard2Events } from './card-2.js?v=13';
 import { renderCard3, bindCard3Events } from './card-3.js?v=13';
 import { exportRecordPDF } from './pdf-export.js?v=13';
@@ -259,17 +259,18 @@ function csvEscape(value) {
 }
 
 /**
- * Exports exactly what the index list shows — one row per record, Card 1
- * fields only. Card 2 production notes and Card 3 distribution details
- * are deliberately left out; this is "the main card," not the deep data.
- * Always refreshes from the server first, so the export is guaranteed
+ * Exports exactly what the index list shows for the *current* platform
+ * and format tab — one row per record, Card 1 fields only. Card 2
+ * production notes and Card 3 distribution details are deliberately
+ * left out; this is "the main card," not the deep data. Always
+ * refreshes from the server first, so the export is guaranteed
  * complete rather than relying on whatever happens to be cached.
  */
 export function bindExportCSV() {
   document.getElementById('export-csv-btn')?.addEventListener('click', async () => {
     await refreshRecords();
 
-    const rows = allRecords.map(r => {
+    const rows = filteredRecords().map(r => {
       const numbers = r.platforms
         .map(p => `${PLATFORM_ABBR[p]}: ${String(r.sequences?.[p] ?? '').padStart(3, '0')}`)
         .join(', ');
@@ -287,8 +288,10 @@ export function bindExportCSV() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const today = new Date().toISOString().slice(0, 10);
+    const platformTag = PLATFORM_ABBR[activePlatform];
+    const formatTag = FORMAT_ABBR[activeFormat];
     a.href = url;
-    a.download = `3c-content-record-centre-export-${today}.csv`;
+    a.download = `3c-content-record-centre-${platformTag}-${formatTag}-${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 
