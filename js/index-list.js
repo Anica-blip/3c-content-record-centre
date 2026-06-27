@@ -32,6 +32,15 @@ const PLATFORM_BANNER = {
   Pinterest: 'assets/banners/PI-banner.png',
 };
 
+// Real channel links — clicking the banner opens these in a new tab.
+// Public URLs, safe directly in code — nothing secret here.
+const PLATFORM_URL = {
+  Telegram:  'https://t.me/+9nzVQANylDY5Y2Y0',
+  YouTube:   'https://www.youtube.com/@3C-Community',
+  TikTok:    'https://www.tiktok.com/@3cthreadtosuccess',
+  Pinterest: 'https://pt.pinterest.com/3cinnertherapy/',
+};
+
 const FORMAT_BUTTON = {
   'short video': 'assets/buttons/SV-button.png',
   'long video':  'assets/buttons/LV-button.png',
@@ -135,6 +144,7 @@ function filteredRecords() {
 
 function renderListView() {
   document.getElementById('list-banner').src = PLATFORM_BANNER[activePlatform];
+  document.getElementById('list-banner-link').href = PLATFORM_URL[activePlatform];
   document.getElementById('list-format-badge').src = FORMAT_BUTTON[activeFormat];
 
   const results   = filteredRecords();
