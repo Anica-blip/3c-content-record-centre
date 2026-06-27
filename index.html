@@ -43,7 +43,9 @@
 
       <div class="banner-row">
         <div class="banner-row__media">
-          <img id="list-banner" src="" alt="" class="banner-row__banner" />
+          <a id="list-banner-link" href="#" target="_blank" rel="noopener noreferrer" title="Open channel">
+            <img id="list-banner" src="" alt="" class="banner-row__banner" />
+          </a>
           <img id="list-format-badge" src="" alt="" class="banner-row__badge" />
           <button class="icon-btn" id="return-menu-btn" title="Return to Menu">
             <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.64-6.36M3 4v5h5"/></svg>
@@ -91,7 +93,7 @@
 
   <script type="module">
     import { requireSession, logout } from './js/auth.js?v=19';
-    import { initIndexList, bindSearch, bindNewRecord, bindPagination, bindExportCSV, returnToMenu } from './js/index-list.js?v=20';
+    import { initIndexList, bindSearch, bindNewRecord, bindPagination, bindExportCSV, returnToMenu } from './js/index-list.js?v=22';
 
     (async () => {
       const user = await requireSession();
