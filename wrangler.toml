@@ -22,6 +22,11 @@ ALLOWED_GITHUB_LOGIN = "Anica-blip"
 ALLOWED_ORIGIN = "https://anica-blip.github.io"
 FRONTEND_URL = "https://anica-blip.github.io/3c-content-record-centre/index.html"
 
+# Second front-end sharing this same Worker + OAuth App — the Content
+# Schedule Planner. Confirmed 2026-06-28. If the Planner ever moves to
+# a custom domain, this is the only line that needs updating.
+PLANNER_FRONTEND_URL = "https://anica-blip.github.io/Content-Schedule-Planner/index.html"
+
 # Secrets — NEVER go in this file. Set them with:
 #   wrangler secret put GITHUB_CLIENT_SECRET
 #   wrangler secret put SESSION_SECRET
