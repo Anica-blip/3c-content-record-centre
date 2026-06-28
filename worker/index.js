@@ -3,7 +3,13 @@
 //
 // Handles three jobs on one Worker, bound to the shared R2 bucket:
 //   1. GitHub OAuth login (single-user gate — only ALLOWED_GITHUB_LOGIN
-//      can ever get a valid session)
+//      can ever get a valid session). Now shared by TWO front-ends —
+//      Record Centre and the Content Schedule Planner — via the same
+//      GitHub OAuth App and the same /auth/callback. handleLogin tags
+//      which app asked inside the existing `state` value; handleCallback
+//      reads it back out and redirects to the matching FRONTEND_URL.
+//      Nothing about verifySession/guarded() changes — a token is a
+//      token regardless of which app it was issued for.
 //   2. Signed session tokens, passed via the Authorization header and
 //      stored in localStorage on the front-end — not cookies. GitHub
 //      Pages and this Worker are different sites, and Firefox's Total
@@ -27,7 +33,7 @@ export default {
     }
 
     try {
-      if (path === '/auth/login')    return handleLogin(env);
+      if (path === '/auth/login')    return handleLogin(url, env);
       if (path === '/auth/callback') return handleCallback(request, url, env);
       if (path === '/auth/me')       return corsResponse(env, await handleMe(request, env));
 
@@ -53,8 +59,13 @@ export default {
 };
 
 // ── OAuth: login ────────────────────────────────────────────
-async function handleLogin(env) {
-  const state = randomToken();
+// ?app=planner from the Planner's own auth.js. Absent, or anything else,
+// defaults to 'recordcentre' — so Record Centre's existing login.html
+// (which calls this with no params at all) behaves exactly as before.
+async function handleLogin(url, env) {
+  const app   = url.searchParams.get('app') === 'planner' ? 'planner' : 'recordcentre';
+  const state = `${randomToken()}|${app}`;
+
   const authorizeUrl = new URL('https://github.com/login/oauth/authorize');
   authorizeUrl.searchParams.set('client_id', env.GITHUB_CLIENT_ID);
   authorizeUrl.searchParams.set('redirect_uri', callbackUrl(env));
@@ -67,6 +78,9 @@ async function handleLogin(env) {
 
 function callbackUrl(env) {
   // Always derived from this Worker's own custom domain, not GitHub Pages.
+  // Stays a single fixed value — GitHub's registered callback URL never
+  // changes. Which front-end gets the token back is decided afterwards,
+  // from the `app` tag riding inside `state`, not from this URL.
   return `https://recordmanagement.threadcommand.center/auth/callback`;
 }
 
@@ -79,6 +93,8 @@ async function handleCallback(request, url, env) {
   if (!code || !state || state !== cookies[STATE_COOKIE]) {
     return new Response('OAuth state mismatch — please try logging in again.', { status: 400 });
   }
+
+  const app = state.split('|')[1] === 'planner' ? 'planner' : 'recordcentre';
 
   const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
     method: 'POST',
@@ -108,7 +124,8 @@ async function handleCallback(request, url, env) {
   }
 
   const session = await signSession({ login: user.login }, env.SESSION_SECRET);
-  const res = Response.redirect(`${env.FRONTEND_URL}#token=${session}`, 302);
+  const targetFrontend = app === 'planner' ? env.PLANNER_FRONTEND_URL : env.FRONTEND_URL;
+  const res = Response.redirect(`${targetFrontend}#token=${session}`, 302);
   return withCookie(res, STATE_COOKIE, '', { maxAge: 0 });
 }
 
