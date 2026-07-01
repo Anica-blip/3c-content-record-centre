@@ -40,6 +40,12 @@ It is where every piece of 3C content gets registered, archived, and tracked fro
 
 ---
 
+## 🔗 Connected Systems
+
+Content registered here is displayed live on the **3C Content Schedule Planner** (https://github.com/Anica-blip/Content-Schedule-Planner), via the same Cloudflare Worker. The Planner never stores a copy of content — every view fetches this repo's data live, read-only.
+
+---
+
 ## 🎨 Artwork
 
 Platform banners (Telegram, YouTube, TikTok, Pinterest) and format/symbol icon set created via [Canva Create](https://www.canva.com/ai-image-generator/) by Chef Anica.
