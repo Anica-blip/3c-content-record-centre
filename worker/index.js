@@ -17,6 +17,10 @@
 //      cookies, which broke login. A bearer token has no such problem.
 //   3. CRUD for content records, stored as JSON files under
 //      env.RECORDS_PREFIX in R2
+//   4. CRUD for Planner calendar items (/api/events) — small, calendar-only
+//      entries typed directly into the Content Schedule Planner (category,
+//      date, time, platforms). One JSON file each under env.EVENTS_PREFIX.
+//      Completely separate from the Record Centre records above.
 
 const STATE_COOKIE    = '3c_oauth_state'; // still a cookie — set and read
                                            // on the same site, same request
@@ -49,6 +53,20 @@ export default {
         if (request.method === 'GET')    return corsResponse(env, await guarded(request, env, () => getRecord(id, env)));
         if (request.method === 'PUT')    return corsResponse(env, await guarded(request, env, () => putRecord(id, request, env)));
         if (request.method === 'DELETE') return corsResponse(env, await guarded(request, env, () => deleteRecordObj(id, env)));
+      }
+
+      // ── Planner calendar items ───────────────────────────────
+      if (path === '/api/events' && request.method === 'GET')
+        return corsResponse(env, await guarded(request, env, () => listEvents(env)));
+
+      if (path === '/api/events' && request.method === 'POST')
+        return corsResponse(env, await guarded(request, env, () => createEvent(request, env)));
+
+      const eventMatch = path.match(/^\/api\/events\/(.+)$/);
+      if (eventMatch) {
+        const id = decodeURIComponent(eventMatch[1]);
+        if (request.method === 'PUT')    return corsResponse(env, await guarded(request, env, () => putEvent(id, request, env)));
+        if (request.method === 'DELETE') return corsResponse(env, await guarded(request, env, () => deleteEvent(id, env)));
       }
 
       return corsResponse(env, jsonResponse({ error: 'Not found' }, 404));
@@ -223,6 +241,116 @@ async function putRecord(id, request, env) {
 // ── Records: delete ─────────────────────────────────────────
 async function deleteRecordObj(id, env) {
   await env.RECORDS_BUCKET.delete(`${env.RECORDS_PREFIX}${id}.json`);
+  return new Response(null, { status: 204 });
+}
+
+// ── Planner calendar items ──────────────────────────────────
+// Only ever touches keys under the events prefix. The fallback matters:
+// if EVENTS_PREFIX were ever missing, an undefined prefix would make
+// R2 list the WHOLE bucket (including Boardroom HQ files) — so it falls
+// back to the real folder name instead of ever being empty.
+const EVENT_PLATFORMS = ['YouTube', 'Telegram', 'Pinterest', 'TikTok'];
+const EVENT_ID_PATTERN = /^EV-[A-Za-z0-9-]{1,60}$/;
+
+function eventsPrefix(env) {
+  return env.EVENTS_PREFIX || 'planner-events/';
+}
+
+// Accepts only the four calendar fields and rebuilds a clean object —
+// nothing else the browser sends is ever stored.
+function cleanEventInput(body) {
+  if (!body || typeof body !== 'object') return { error: 'Invalid event' };
+
+  const category = typeof body.category === 'string' ? body.category.trim() : '';
+  if (!category)            return { error: 'Category is required' };
+  if (category.length > 60) return { error: 'Category is too long (max 60 characters)' };
+
+  const date = typeof body.date === 'string' ? body.date : '';
+  const dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!dm) return { error: 'Date must be YYYY-MM-DD' };
+  const check = new Date(Date.UTC(+dm[1], +dm[2] - 1, +dm[3]));
+  if (check.getUTCFullYear() !== +dm[1] || check.getUTCMonth() !== +dm[2] - 1 || check.getUTCDate() !== +dm[3])
+    return { error: 'Date is not a real calendar date' };
+
+  const time = typeof body.time === 'string' ? body.time : '';
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return { error: 'Time must be HH:MM in 24-hour format' };
+
+  const platforms = Array.isArray(body.platforms)
+    ? EVENT_PLATFORMS.filter(p => body.platforms.includes(p))
+    : [];
+  if (!platforms.length) return { error: 'Choose at least one platform' };
+
+  return { value: { category, date, time, platforms } };
+}
+
+function newEventId(date, time) {
+  const rand = Array.from(crypto.getRandomValues(new Uint8Array(3)))
+    .map(b => b.toString(16).padStart(2, '0')).join('');
+  return `EV-${date.replace(/-/g, '')}-${time.replace(':', '')}-${rand}`;
+}
+
+async function listEvents(env) {
+  const prefix = eventsPrefix(env);
+  const keys = [];
+  let cursor;
+  do {
+    const listing = await env.RECORDS_BUCKET.list({ prefix, cursor });
+    for (const obj of listing.objects) if (obj.key.endsWith('.json')) keys.push(obj.key);
+    cursor = listing.truncated ? listing.cursor : undefined;
+  } while (cursor);
+
+  const events = await Promise.all(keys.map(async key => {
+    try {
+      const file = await env.RECORDS_BUCKET.get(key);
+      return file ? await file.json() : null;
+    } catch {
+      // One unreadable file must never take the whole list down.
+      return null;
+    }
+  }));
+  return jsonResponse(events.filter(Boolean));
+}
+
+async function createEvent(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+  const { value, error } = cleanEventInput(body);
+  if (error) return jsonResponse({ error }, 400);
+
+  const now = new Date().toISOString();
+  const event = { id: newEventId(value.date, value.time), ...value, created: now, updated: now };
+  await env.RECORDS_BUCKET.put(`${eventsPrefix(env)}${event.id}.json`, JSON.stringify(event), {
+    httpMetadata: { contentType: 'application/json' },
+  });
+  return jsonResponse(event, 201);
+}
+
+// Update only works on an item that already exists — a mistyped id
+// can never silently create a stray file.
+async function putEvent(id, request, env) {
+  if (!EVENT_ID_PATTERN.test(id)) return jsonResponse({ error: 'Invalid event id' }, 400);
+  const key = `${eventsPrefix(env)}${id}.json`;
+  const existing = await env.RECORDS_BUCKET.get(key);
+  if (!existing) return jsonResponse({ error: 'Event not found' }, 404);
+
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: 'Invalid JSON' }, 400); }
+  const { value, error } = cleanEventInput(body);
+  if (error) return jsonResponse({ error }, 400);
+
+  let created = null;
+  try { created = (await existing.json()).created || null; } catch { /* keep null */ }
+  const now = new Date().toISOString();
+  const event = { id, ...value, created: created || now, updated: now };
+  await env.RECORDS_BUCKET.put(key, JSON.stringify(event), {
+    httpMetadata: { contentType: 'application/json' },
+  });
+  return jsonResponse(event);
+}
+
+async function deleteEvent(id, env) {
+  if (!EVENT_ID_PATTERN.test(id)) return jsonResponse({ error: 'Invalid event id' }, 400);
+  await env.RECORDS_BUCKET.delete(`${eventsPrefix(env)}${id}.json`);
   return new Response(null, { status: 204 });
 }
 
