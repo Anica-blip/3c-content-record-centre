@@ -14,6 +14,11 @@ bucket_name = "3c-boardroom-hq"
 # Non-secret config — safe to commit
 [vars]
 RECORDS_PREFIX = "record-centre-lists/"
+
+# Calendar-only items typed directly into the Content Schedule Planner —
+# kept in their own folder, completely separate from the Record Centre records.
+EVENTS_PREFIX = "planner-events/"
+
 GITHUB_CLIENT_ID = "Ov23ligayj6Dj10S7kx8"
 ALLOWED_GITHUB_LOGIN = "Anica-blip"
 
