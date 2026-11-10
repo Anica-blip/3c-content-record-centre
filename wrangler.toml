@@ -13,7 +13,7 @@ bucket_name = "3c-boardroom-hq"
 
 # Non-secret config — safe to commit
 [vars]
-RECORDS_PREFIX = "records/"
+RECORDS_PREFIX = "record-centre-lists/"
 GITHUB_CLIENT_ID = "Ov23ligayj6Dj10S7kx8"
 ALLOWED_GITHUB_LOGIN = "Anica-blip"
 
