@@ -139,7 +139,11 @@ function filteredRecords() {
       ...(r.platforms || []),
     ].join(' ').toLowerCase().includes(q));
   }
-  return results;
+  // Order by the record number for the open platform, highest (newest) first,
+  // regardless of persona. Falls back to created time when numbers are equal.
+  return results.slice().sort((a, b) =>
+    (Number(b.sequences?.[activePlatform]) || 0) - (Number(a.sequences?.[activePlatform]) || 0)
+    || (b.created || '').localeCompare(a.created || ''));
 }
 
 function renderListView() {
